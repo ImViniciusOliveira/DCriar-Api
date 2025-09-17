@@ -1,0 +1,101 @@
+# ===================================================================
+# CONFIGURAÇÕES GERAIS (Aplicadas a todos os perfis)
+# ===================================================================
+spring:
+  application:
+    name: dcriar
+  # Ativa o perfil 'dev' por padrão.
+  profiles:
+    active: dev
+  jpa:
+    # Mostra o SQL no console, útil para debug em qualquer ambiente.
+    show-sql: false
+    properties:
+      hibernate:
+        # Formata o SQL no console para ser mais legível.
+        format_sql: false
+  # Configuração de logging geral.
+logging:
+  level:
+    # Reduz o log do Hibernate para mostrar apenas avisos (WARN) e erros.
+    org.hibernate: WARN
+
+# Configurações de segurança do JWT, que são as mesmas para todos os ambientes.
+security:
+  jwt:
+    issuer: dcriar-api
+    expiration-hours: 24
+    # Lê a chave secreta de uma variável de ambiente. Essencial para segurança.
+    secret-key: ${JWT_SECRET_KEY:default-secret-key-for-dev-only-change-in-prod}
+
+---
+
+# ===================================================================
+# PERFIL DE DESENVOLVIMENTO (dev)
+# ===================================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # Configurações do banco de dados para o ambiente de desenvolvimento local.
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dcriar_db
+    username: dcriar_user
+    # A senha deve ser fornecida via variável de ambiente para maior segurança.
+    password: ${DB_PASSWORD:vini0609}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # O Flyway cuidará do banco, então 'validate' garante que o schema e as entidades estão em sincronia.
+      ddl-auto: validate
+
+  # Configuração do Flyway para o perfil de desenvolvimento.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Se o banco já tiver tabelas mas não um histórico do Flyway,
+    # esta opção cria o histórico e considera a V1 como já aplicada.
+    baseline-on-migrate: true
+    # Permite que o comando 'clean' seja executado, DESBLOQUEANDO nossa estratégia de reset no dev.
+    clean-disabled: false
+
+---
+
+# ===================================================================
+# PERFIL DE PRODUÇÃO (prod)
+# ===================================================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  # Em produção, as credenciais do banco de dados DEVEM ser fornecidas por variáveis de ambiente.
+  datasource:
+    url: ${DB_URL_PROD}
+    username: ${DB_USERNAME_PROD}
+    password: ${DB_PASSWORD_PROD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      # Valida se o esquema do banco corresponde às entidades, mas não faz nenhuma alteração.
+      ddl-auto: validate
+    # Em produção, desativamos a exibição de SQL para não poluir os logs.
+    show-sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Em produção, a limpeza do banco deve estar SEMPRE desabilitada por segurança.
+    clean-disabled: true
+
+# Bloco de logging específico para o perfil 'prod'.
+logging:
+  level:
+    com.zaxxer.hikari: WARN
+

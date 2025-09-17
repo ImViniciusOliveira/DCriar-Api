@@ -1,0 +1,56 @@
+package com.dcriar.domain.stock.service;
+
+import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
+import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
+
+import java.util.List;
+
+/**
+ * Interface que define o contrato para a lógica de negócio de gerenciamento de Tipos de Matéria-Prima.
+ * <p>
+ * Abstrai as operações de CRUD e outras regras de negócio, desacoplando o controller da implementação.
+ */
+public interface TipoMateriaPrimaService {
+
+    /**
+     * Retorna uma lista de todos os tipos de matéria-prima cadastrados.
+     *
+     * @return Uma lista de {@link TipoMateriaPrimaResponseDTO}.
+     */
+    List<TipoMateriaPrimaResponseDTO> findAll();
+
+    /**
+     * Busca um tipo de matéria-prima pelo seu ID.
+     *
+     * @param id O ID do tipo de matéria-prima.
+     * @return O {@link TipoMateriaPrimaResponseDTO} correspondente.
+     * @throws jakarta.persistence.EntityNotFoundException se o tipo não for encontrado.
+     */
+    TipoMateriaPrimaResponseDTO findById(Long id);
+
+    /**
+     * Cria um novo tipo de matéria-prima.
+     *
+     * @param requestDTO O DTO com os dados para a criação.
+     * @return O {@link TipoMateriaPrimaResponseDTO} do tipo recém-criado.
+     */
+    TipoMateriaPrimaResponseDTO create(TipoMateriaPrimaRequestDTO requestDTO);
+
+    /**
+     * Atualiza um tipo de matéria-prima existente.
+     *
+     * @param id O ID do tipo a ser atualizado.
+     * @param requestDTO O DTO com os novos dados.
+     * @return O {@link TipoMateriaPrimaResponseDTO} do tipo atualizado.
+     * @throws jakarta.persistence.EntityNotFoundException se o tipo não for encontrado.
+     */
+    TipoMateriaPrimaResponseDTO update(Long id, TipoMateriaPrimaRequestDTO requestDTO);
+
+    /**
+     * Deleta um tipo de matéria-prima pelo seu ID.
+     *
+     * @param id O ID do tipo a ser deletado.
+     * @throws jakarta.persistence.EntityNotFoundException se o tipo não for encontrado.
+     */
+    void deleteById(Long id);
+}
