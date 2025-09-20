@@ -1,13 +1,19 @@
 package com.dcriar.domain.product.service.impl;
 
+import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
+import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.mapper.product.EstoqueMapper;
+import com.dcriar.api.mapper.product.MovimentacaoProdutoMapper;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.Estoque;
+import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
+import com.dcriar.domain.product.entity.enuns.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.repository.EstoqueRepository;
+import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import jakarta.persistence.EntityNotFoundException;
@@ -29,6 +35,8 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     private final ProdutoRepository produtoRepository;
     private final CanalVendaRepository canalVendaRepository;
     private final EstoqueMapper estoqueMapper;
+    private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
+    private final MovimentacaoProdutoMapper movimentacaoProdutoMapper;
 
     @Override
     @Transactional
@@ -36,19 +44,47 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         CanalVenda canalVenda = findCanalVendaById(requestDTO.getCanalVendaId());
 
-        // Procura por um registro de estoque existente ou cria um novo.
+        if (requestDTO.getQuantidade() > 0) {
+            Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
+            List<Estoque> estoquesAtuais = estoqueRepository.findAllByProduto(produto);
+            int totalDistribuido = estoquesAtuais.stream()
+                    .mapToInt(Estoque::getQuantidade)
+                    .sum();
+            int novoTotalDistribuido = totalDistribuido + requestDTO.getQuantidade();
+
+            if (novoTotalDistribuido > estoqueFisicoTotal) {
+                throw new IllegalStateException(
+                        "Operação bloqueada. O total distribuído (" + novoTotalDistribuido + ") não pode ultrapassar o estoque físico total (" + estoqueFisicoTotal + ")."
+                );
+            }
+        }
+
         Estoque estoque = estoqueRepository.findByProdutoAndCanalVenda(produto, canalVenda)
                 .orElseGet(() -> criarNovoEstoque(produto, canalVenda));
 
-        // Ajusta a quantidade.
         int novaQuantidade = estoque.getQuantidade() + requestDTO.getQuantidade();
         if (novaQuantidade < 0) {
-            throw new IllegalArgumentException("A operação resultaria em estoque negativo.");
+            throw new IllegalArgumentException("A operação resultaria em estoque negativo no canal.");
         }
         estoque.setQuantidade(novaQuantidade);
 
         Estoque estoqueSalvo = estoqueRepository.save(estoque);
         return estoqueMapper.toResponseDTO(estoqueSalvo);
+    }
+
+    @Override
+    @Transactional
+    public void ajustarEstoqueFisico(AjusteEstoqueProdutoRequestDTO requestDTO) {
+        Produto produto = findProdutoById(requestDTO.getProdutoId());
+
+        MovimentacaoEstoqueProduto movimentacaoManual = MovimentacaoEstoqueProduto.builder()
+                .produto(produto)
+                .tipo(TipoMovimentacaoProduto.AJUSTE_MANUAL)
+                .quantidade(requestDTO.getQuantidade())
+                .motivo(requestDTO.getMotivo())
+                .build();
+
+        movimentacaoEstoqueProdutoRepository.save(movimentacaoManual);
     }
 
     @Override
@@ -73,11 +109,21 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<MovimentacaoProdutoResponseDTO> listarMovimentacoesPorProduto(Long produtoId) {
+        Produto produto = findProdutoById(produtoId);
+        return movimentacaoEstoqueProdutoRepository.findAllByProduto(produto)
+                .stream()
+                .map(movimentacaoProdutoMapper::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+
     private Estoque criarNovoEstoque(Produto produto, CanalVenda canalVenda) {
         return Estoque.builder()
                 .produto(produto)
                 .canalVenda(canalVenda)
-                .quantidade(0) // Começa com zero antes do primeiro ajuste.
+                .quantidade(0)
                 .build();
     }
 
@@ -91,3 +137,4 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .orElseThrow(() -> new EntityNotFoundException("Canal de Venda não encontrado com o ID: " + id));
     }
 }
+

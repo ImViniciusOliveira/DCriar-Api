@@ -11,11 +11,11 @@ import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
 public interface OrdemDeProducaoService {
 
     /**
-     * Processa uma ordem de corte, consumindo material de um lote principal
-     * e criando automaticamente um novo lote para a sobra (retalho), se aplicável.
+     * Processa uma ordem de corte, consumindo material de um lote principal,
+     * criando um novo lote para a sobra (retalho), se aplicável, e dando
+     * entrada do produto acabado no estoque mestre e no estoque do canal de destino.
      *
-     * @param requestDTO O DTO com os detalhes da ordem de corte.
+     * @param requestDTO O DTO com os detalhes completos da ordem de corte.
      */
     void processarOrdemDeCorte(OrdemDeCorteRequestDTO requestDTO);
 }
-

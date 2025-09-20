@@ -17,6 +17,9 @@ public interface ProdutoMapper {
     /**
      * Converte a entidade Produto para um DTO de resposta, incluindo sua composição.
      */
+    @Mapping(target = "estoqueFisicoTotal", ignore = true)
+    @Mapping(target = "estoqueDistribuidoTotal", ignore = true)
+    @Mapping(target = "estoqueDisponivelParaAlocar", ignore = true)
     ProdutoResponseDTO toResponseDTO(Produto produto);
 
     /**

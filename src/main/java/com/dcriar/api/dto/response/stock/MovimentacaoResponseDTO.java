@@ -31,6 +31,14 @@ public class MovimentacaoResponseDTO {
     @Schema(description = "A quantidade que foi movimentada. Positiva para entradas, negativa para saídas.", example = "50.00")
     private BigDecimal quantidade;
 
+    /**
+     * O custo calculado por unidade base (ex: R$/cm², R$/ml) no momento da entrada.
+     * Este campo só terá valor para movimentações do tipo ENTRADA_COMPRA.
+     */
+    @Schema(description = "O custo por unidade base no momento da entrada (ex: R$/cm²). Será nulo para outras movimentações.", example = "0.0007")
+    private BigDecimal custoPorUnidadeBase;
+
     @Schema(description = "O motivo ou observação registado para a movimentação.", example = "Entrada inicial do lote no sistema.")
     private String motivo;
 }
+

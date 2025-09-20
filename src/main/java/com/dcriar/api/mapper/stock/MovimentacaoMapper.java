@@ -8,8 +8,6 @@ import org.mapstruct.MappingConstants;
 /**
  * Interface MapStruct para mapear a entidade {@link MovimentacaoEstoqueLote}
  * para seu DTO de resposta.
- * <p>
- * Abstrai a lógica de conversão, mantendo o código limpo e com baixo acoplamento.
  */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface MovimentacaoMapper {
@@ -17,7 +15,8 @@ public interface MovimentacaoMapper {
     /**
      * Converte a entidade MovimentacaoEstoqueLote para um DTO de resposta.
      * <p>
-     * O MapStruct irá mapear automaticamente os campos com nomes correspondentes.
+     * O MapStruct irá mapear automaticamente todos os campos com nomes correspondentes,
+     * incluindo o novo campo 'custoPorUnidadeBase'.
      *
      * @param movimentacao A entidade de origem.
      * @return O DTO {@link MovimentacaoResponseDTO} correspondente.

@@ -57,21 +57,14 @@ public class ProdutoRequestDTO {
         @Valid
         private final Set<ComposicaoRequestDTO> composicao;
 
-        /**
-         * DTO aninhado para representar um item da "receita" de um produto.
-         */
-        @Getter
-        @Builder
-        public static class ComposicaoRequestDTO {
+    /**
+     * DTO aninhado para representar um item da "receita" de um produto.
+     */
+    @Builder
+    public record ComposicaoRequestDTO(
+            @Schema(description = "ID da Matéria-Prima utilizada.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED) @NotNull(message = "O ID da matéria-prima é obrigatório.") Long materiaPrimaId,
+            @Schema(description = "Área gasta do material para produzir uma unidade do produto, em centímetros quadrados (cm²).", example = "25.5", requiredMode = Schema.RequiredMode.REQUIRED) @NotNull(message = "O gasto de material é obrigatório.") @Positive(message = "O gasto de material deve ser um número positivo.") BigDecimal gastoMaterialPorUnidade) {
 
-                @Schema(description = "ID da Matéria-Prima utilizada.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
-                @NotNull(message = "O ID da matéria-prima é obrigatório.")
-                private final Long materiaPrimaId;
-
-                @Schema(description = "Área gasta do material para produzir uma unidade do produto, em centímetros quadrados (cm²).", example = "25.5", requiredMode = Schema.RequiredMode.REQUIRED)
-                @NotNull(message = "O gasto de material é obrigatório.")
-                @Positive(message = "O gasto de material deve ser um número positivo.")
-                private final BigDecimal gastoMaterialPorUnidade;
-        }
+    }
 }
 

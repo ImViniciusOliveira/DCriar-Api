@@ -4,7 +4,10 @@ import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.product.entity.ComposicaoProduto;
+import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.Produto;
+import com.dcriar.domain.product.repository.EstoqueRepository;
+import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
@@ -28,12 +31,14 @@ public class ProdutoServiceImpl implements ProdutoService {
     private final ProdutoRepository produtoRepository;
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
     private final ProdutoMapper produtoMapper;
+    private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
+    private final EstoqueRepository estoqueRepository;
 
     @Override
     @Transactional(readOnly = true)
     public List<ProdutoResponseDTO> findAll() {
         return produtoRepository.findAll().stream()
-                .map(produtoMapper::toResponseDTO)
+                .map(this::mapAndEnrichProduto)
                 .collect(Collectors.toList());
     }
 
@@ -41,7 +46,7 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Transactional(readOnly = true)
     public ProdutoResponseDTO findById(Long id) {
         Produto produto = findProdutoById(id);
-        return produtoMapper.toResponseDTO(produto);
+        return mapAndEnrichProduto(produto);
     }
 
     @Override
@@ -50,7 +55,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         Produto produto = Produto.from(requestDTO);
         atualizarComposicaoDoProduto(produto, requestDTO.getComposicao());
         Produto produtoSalvo = produtoRepository.save(produto);
-        return produtoMapper.toResponseDTO(produtoSalvo);
+        return mapAndEnrichProduto(produtoSalvo);
     }
 
     @Override
@@ -61,7 +66,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         produto.limparComposicao();
         atualizarComposicaoDoProduto(produto, requestDTO.getComposicao());
         Produto produtoAtualizado = produtoRepository.save(produto);
-        return produtoMapper.toResponseDTO(produtoAtualizado);
+        return mapAndEnrichProduto(produtoAtualizado);
     }
 
     @Override
@@ -71,6 +76,27 @@ public class ProdutoServiceImpl implements ProdutoService {
             throw new EntityNotFoundException("Produto não encontrado com o ID: " + id);
         }
         produtoRepository.deleteById(id);
+    }
+
+    /**
+     * Método auxiliar para mapear e enriquecer um Produto com o resumo de estoque.
+     */
+    private ProdutoResponseDTO mapAndEnrichProduto(Produto produto) {
+        // 1. Mapeamento básico
+        ProdutoResponseDTO dto = produtoMapper.toResponseDTO(produto);
+
+        // 2. Cálculo dos valores de estoque
+        Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
+        List<Estoque> estoquesAtuais = estoqueRepository.findAllByProduto(produto);
+        int estoqueDistribuidoTotal = estoquesAtuais.stream().mapToInt(Estoque::getQuantidade).sum();
+        int estoqueDisponivelParaAlocar = estoqueFisicoTotal - estoqueDistribuidoTotal;
+
+        // 3. Preenchimento dos novos campos no DTO
+        dto.setEstoqueFisicoTotal(estoqueFisicoTotal);
+        dto.setEstoqueDistribuidoTotal(estoqueDistribuidoTotal);
+        dto.setEstoqueDisponivelParaAlocar(estoqueDisponivelParaAlocar);
+
+        return dto;
     }
 
     private Produto findProdutoById(Long id) {
@@ -84,15 +110,14 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
 
         for (ProdutoRequestDTO.ComposicaoRequestDTO itemDTO : composicaoRequest) {
-            TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(itemDTO.getMateriaPrimaId())
-                    .orElseThrow(() -> new EntityNotFoundException("Tipo de Matéria-Prima não encontrado com o ID: " + itemDTO.getMateriaPrimaId()));
+            TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(itemDTO.materiaPrimaId())
+                    .orElseThrow(() -> new EntityNotFoundException("Tipo de Matéria-Prima não encontrado com o ID: " + itemDTO.materiaPrimaId()));
 
             ComposicaoProduto itemComposicao = ComposicaoProduto.builder()
                     .tipoMateriaPrima(tipoMateriaPrima)
-                    .gastoMaterialPorUnidade(itemDTO.getGastoMaterialPorUnidade())
+                    .gastoMaterialPorUnidade(itemDTO.gastoMaterialPorUnidade())
                     .build();
             produto.adicionarComposicao(itemComposicao);
         }
     }
 }
-

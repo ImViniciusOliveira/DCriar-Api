@@ -1,11 +1,18 @@
 package com.dcriar.domain.production.service.impl;
 
 import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
+import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
+import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
+import com.dcriar.domain.product.entity.Produto;
+import com.dcriar.domain.product.entity.enuns.TipoMovimentacaoProduto;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.enuns.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enuns.UnidadeDeMedida;
 import com.dcriar.domain.production.service.OrdemDeProducaoService;
+import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
+import com.dcriar.domain.product.repository.ProdutoRepository;
+import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -24,8 +31,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
+    // Repositórios existentes
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
+
+    // Novas dependências injetadas
+    private final ProdutoRepository produtoRepository;
+    private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
+    private final EstoqueProdutoService estoqueProdutoService;
 
     @Override
     @Transactional
@@ -47,6 +60,36 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         if (larguraSobraCm.compareTo(BigDecimal.ZERO) > 0) {
             criarLoteDeRetalho(lotePrincipal, larguraSobraCm, comprimentoDeCorteMetros);
         }
+
+        // 5. Regista a entrada do produto acabado no "Estoque Mestre"
+        registrarEntradaProdutoAcabado(requestDTO);
+
+        // 6. Aloca o novo estoque ao canal de venda de destino
+        distribuirEstoqueParaCanal(requestDTO);
+    }
+
+    private void registrarEntradaProdutoAcabado(OrdemDeCorteRequestDTO requestDTO) {
+        Produto produto = produtoRepository.findById(requestDTO.getProdutoId())
+                .orElseThrow(() -> new EntityNotFoundException("Produto final não encontrado com o ID: " + requestDTO.getProdutoId()));
+
+        MovimentacaoEstoqueProduto entradaProducao = MovimentacaoEstoqueProduto.builder()
+                .produto(produto)
+                .tipo(TipoMovimentacaoProduto.ENTRADA_PRODUCAO)
+                .quantidade(requestDTO.getQuantidadeProduzida())
+                .motivo("Produzido via Ordem de Corte. Consumiu o Lote ID: " + requestDTO.getLotePrincipalId())
+                .build();
+
+        movimentacaoEstoqueProdutoRepository.save(entradaProducao);
+    }
+
+    private void distribuirEstoqueParaCanal(OrdemDeCorteRequestDTO requestDTO) {
+        AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
+                .produtoId(requestDTO.getProdutoId())
+                .canalVendaId(requestDTO.getCanalVendaDestinoId())
+                .quantidade(requestDTO.getQuantidadeProduzida())
+                .build();
+
+        estoqueProdutoService.ajustarEstoque(ajusteDTO);
     }
 
     private void validarOrdemDeCorte(LoteMateriaPrima lote, OrdemDeCorteRequestDTO dto) {
@@ -70,7 +113,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         MovimentacaoEstoqueLote saida = MovimentacaoEstoqueLote.builder()
                 .lote(lote)
                 .tipo(TipoMovimentacao.SAIDA_PRODUCAO)
-                .quantidade(comprimentoDeCorteMetros.negate()) // Quantidade é negativa para saídas
+                .quantidade(comprimentoDeCorteMetros.negate())
                 .motivo(motivo)
                 .build();
         movimentacaoEstoqueLoteRepository.save(saida);
@@ -83,7 +126,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .tipoMateriaPrima(lotePrincipal.getTipoMateriaPrima())
                 .unidadeDeEstoque(UnidadeDeMedida.METRO_LINEAR)
                 .atributos(novosAtributos)
-                .loteDeOrigem(lotePrincipal) // Ligação para rastreabilidade
+                .loteDeOrigem(lotePrincipal)
                 .build();
 
         MovimentacaoEstoqueLote entradaRetalho = MovimentacaoEstoqueLote.builder()
