@@ -16,7 +16,10 @@ import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
-import jakarta.persistence.EntityNotFoundException;
+import com.dcriar.exception.custom.CanalVendaNotFoundException;
+import com.dcriar.exception.custom.EstoqueInsuficienteException;
+import com.dcriar.exception.custom.EstoqueNegativoNoCanalException;
+import com.dcriar.exception.custom.ProdutoNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,9 +56,9 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
             int novoTotalDistribuido = totalDistribuido + requestDTO.getQuantidade();
 
             if (novoTotalDistribuido > estoqueFisicoTotal) {
-                throw new IllegalStateException(
-                        "Operação bloqueada. O total distribuído (" + novoTotalDistribuido + ") não pode ultrapassar o estoque físico total (" + estoqueFisicoTotal + ")."
-                );
+                throw new EstoqueInsuficienteException(produto.getId(),
+                        "O total distribuído (" + novoTotalDistribuido + ") não pode ultrapassar o estoque físico total (" + estoqueFisicoTotal + ").");
+
             }
         }
 
@@ -63,14 +66,27 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .orElseGet(() -> criarNovoEstoque(produto, canalVenda));
 
         int novaQuantidade = estoque.getQuantidade() + requestDTO.getQuantidade();
+
+        // --- INÍCIO DA MODIFICAÇÃO ---
+        // Em vez de lançar um erro genérico, agora lançamos a nossa exceção especialista,
+        // que carrega todo o contexto do erro.
         if (novaQuantidade < 0) {
-            throw new IllegalArgumentException("A operação resultaria em estoque negativo no canal.");
+            throw new EstoqueNegativoNoCanalException(
+                    produto.getId(),
+                    canalVenda.getId(),
+                    estoque.getQuantidade(), // O estoque atual antes da operação
+                    requestDTO.getQuantidade() // A quantidade que se tentou remover
+            );
         }
+        // --- FIM DA MODIFICAÇÃO ---
+
         estoque.setQuantidade(novaQuantidade);
 
         Estoque estoqueSalvo = estoqueRepository.save(estoque);
         return estoqueMapper.toResponseDTO(estoqueSalvo);
     }
+
+    // ... resto dos métodos permanecem os mesmos ...
 
     @Override
     @Transactional
@@ -95,9 +111,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
         return estoqueRepository.findByProdutoAndCanalVenda(produto, canalVenda)
                 .map(estoqueMapper::toResponseDTO)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Nenhum registro de estoque encontrado para o produto ID " + produtoId + " no canal de venda ID " + canalVendaId
-                ));
+                .orElseThrow(() -> new ProdutoNotFoundException(produtoId));
     }
 
     @Override
@@ -129,12 +143,12 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
     private Produto findProdutoById(Long id) {
         return produtoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Produto não encontrado com o ID: " + id));
+                .orElseThrow(() -> new ProdutoNotFoundException(id));
     }
 
     private CanalVenda findCanalVendaById(Long id) {
         return canalVendaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Canal de Venda não encontrado com o ID: " + id));
+                .orElseThrow(() -> new CanalVendaNotFoundException(id));
     }
 }
 

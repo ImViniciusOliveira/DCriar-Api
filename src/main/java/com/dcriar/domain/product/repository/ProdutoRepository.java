@@ -12,4 +12,16 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface ProdutoRepository extends JpaRepository<Produto, Long> {
+
+    // Verifica se já existe produto com o mesmo nome
+    boolean existsByNome(String nome);
+
+    // Verifica se já existe produto com o mesmo SKU
+    boolean existsBySku(String sku);
+
+    // Verifica se existe outro produto com o mesmo nome (excluindo o produto de id passado)
+    boolean existsByNomeAndIdNot(String nome, Long id);
+
+    // Verifica se existe outro produto com o mesmo SKU (excluindo o produto de id passado)
+    boolean existsBySkuAndIdNot(String sku, Long id);
 }

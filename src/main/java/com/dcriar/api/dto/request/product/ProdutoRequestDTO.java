@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.Set;
 
 @Getter
@@ -33,11 +35,8 @@ public class ProdutoRequestDTO {
     @Schema(description = "Indica se o produto está ativo para venda.", example = "true")
     private Boolean ativo;
 
+    @NotEmpty(message = "Todo produto deve ter pelo menos uma composição")
+    @Valid
     private final Set<ComposicaoRequestDTO> composicao;
 
-    @Builder
-    public record ComposicaoRequestDTO(
-            Long materiaPrimaId,
-            java.math.BigDecimal gastoMaterialPorUnidade
-    ) {}
 }

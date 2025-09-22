@@ -15,10 +15,12 @@ import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.dcriar.exception.custom.LoteMateriaPrimaNotFoundException;
+import com.dcriar.exception.custom.ProdutoNotFoundException;
+import com.dcriar.exception.custom.RegraNegocioException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,11 +33,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
-    // Repositórios existentes
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
-
-    // Novas dependências injetadas
     private final ProdutoRepository produtoRepository;
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
     private final EstoqueProdutoService estoqueProdutoService;
@@ -50,10 +49,11 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         // 2. Cálculo do consumo e da sobra
         BigDecimal larguraTotalCm = getLarguraEmCm(lotePrincipal.getAtributos());
-        BigDecimal comprimentoDeCorteMetros = requestDTO.getComprimentoDeCorteCm().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+        BigDecimal comprimentoDeCorteMetros = requestDTO.getComprimentoDeCorteCm()
+                .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
         BigDecimal larguraSobraCm = larguraTotalCm.subtract(requestDTO.getLarguraDeCorteCm());
 
-        // 3. Regista a saída no lote principal
+        // 3. Registra a saída no lote principal
         registrarSaida(lotePrincipal, comprimentoDeCorteMetros, requestDTO.getMotivo());
 
         // 4. Cria o novo lote de retalho, se houver sobra
@@ -61,7 +61,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             criarLoteDeRetalho(lotePrincipal, larguraSobraCm, comprimentoDeCorteMetros);
         }
 
-        // 5. Regista a entrada do produto acabado no "Estoque Mestre"
+        // 5. Registra a entrada do produto acabado
         registrarEntradaProdutoAcabado(requestDTO);
 
         // 6. Aloca o novo estoque ao canal de venda de destino
@@ -70,7 +70,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private void registrarEntradaProdutoAcabado(OrdemDeCorteRequestDTO requestDTO) {
         Produto produto = produtoRepository.findById(requestDTO.getProdutoId())
-                .orElseThrow(() -> new EntityNotFoundException("Produto final não encontrado com o ID: " + requestDTO.getProdutoId()));
+                .orElseThrow(() -> new ProdutoNotFoundException(requestDTO.getProdutoId()));
 
         MovimentacaoEstoqueProduto entradaProducao = MovimentacaoEstoqueProduto.builder()
                 .produto(produto)
@@ -94,18 +94,20 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private void validarOrdemDeCorte(LoteMateriaPrima lote, OrdemDeCorteRequestDTO dto) {
         if (lote.getUnidadeDeEstoque() != UnidadeDeMedida.METRO_LINEAR) {
-            throw new IllegalArgumentException("Ordens de corte só podem ser processadas em lotes com unidade de estoque METRO_LINEAR.");
+            throw new RegraNegocioException("Ordens de corte só podem ser processadas em lotes com unidade METRO_LINEAR.");
         }
 
         BigDecimal larguraTotalCm = getLarguraEmCm(lote.getAtributos());
         if (dto.getLarguraDeCorteCm().compareTo(larguraTotalCm) > 0) {
-            throw new IllegalArgumentException("A largura de corte não pode ser maior que a largura total do lote.");
+            throw new RegraNegocioException("A largura de corte não pode ser maior que a largura total do lote.");
         }
 
         BigDecimal saldoAtualMetros = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
-        BigDecimal comprimentoDeCorteMetros = dto.getComprimentoDeCorteCm().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+        BigDecimal comprimentoDeCorteMetros = dto.getComprimentoDeCorteCm()
+                .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+
         if (comprimentoDeCorteMetros.compareTo(saldoAtualMetros) > 0) {
-            throw new IllegalArgumentException("Saldo de estoque insuficiente para este corte.");
+            throw new RegraNegocioException("Saldo de estoque insuficiente para este corte.");
         }
     }
 
@@ -116,11 +118,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .quantidade(comprimentoDeCorteMetros.negate())
                 .motivo(motivo)
                 .build();
+
         movimentacaoEstoqueLoteRepository.save(saida);
     }
 
     private void criarLoteDeRetalho(LoteMateriaPrima lotePrincipal, BigDecimal larguraSobraCm, BigDecimal comprimentoMetros) {
-        Map<String, Object> novosAtributos = Map.of("larguraMm", larguraSobraCm.multiply(new BigDecimal("10")).intValue());
+        Map<String, Object> novosAtributos = Map.of(
+                "larguraMm", larguraSobraCm.multiply(new BigDecimal("10")).intValue()
+        );
 
         LoteMateriaPrima loteRetalho = LoteMateriaPrima.builder()
                 .tipoMateriaPrima(lotePrincipal.getTipoMateriaPrima())
@@ -142,15 +147,15 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private LoteMateriaPrima findLoteById(Long id) {
         return loteMateriaPrimaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Lote de Matéria-Prima não encontrado com o ID: " + id));
+                .orElseThrow(() -> new LoteMateriaPrimaNotFoundException(id));
     }
 
     private BigDecimal getLarguraEmCm(Map<String, Object> atributos) {
         Object larguraMmObj = atributos.get("larguraMm");
         if (!(larguraMmObj instanceof Number)) {
-            throw new IllegalStateException("O lote não possui o atributo 'larguraMm' numérico para realizar o cálculo de corte.");
+            throw new RegraNegocioException("O lote não possui o atributo 'larguraMm' numérico para realizar o cálculo de corte.");
         }
-        return new BigDecimal(((Number) larguraMmObj).intValue()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
+        return new BigDecimal(((Number) larguraMmObj).intValue())
+                .divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
     }
 }
-

@@ -1,5 +1,6 @@
 package com.dcriar.api.dto.request.sales;
 
+import com.dcriar.api.validation.annotation.ValidSaleRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -19,20 +20,12 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ValidSaleRequest
 public class SaleRequestDTO {
 
-    /**
-     * O ID do canal de venda onde a transação ocorreu.
-     */
-    @NotNull(message = "O ID do canal de venda é obrigatório.")
     @Schema(description = "O ID do canal de venda onde a transação ocorreu.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long canalVendaId;
 
-    /**
-     * A lista de itens que foram vendidos nesta transação.
-     * A anotação @Valid garante que os objetos dentro da lista também serão validados.
-     */
-    @NotEmpty(message = "A lista de itens não pode estar vazia.")
     @Schema(description = "A lista de itens vendidos.", requiredMode = Schema.RequiredMode.REQUIRED)
     private List<@Valid SaleItemRequestDTO> items;
 }

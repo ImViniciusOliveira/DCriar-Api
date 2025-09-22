@@ -20,4 +20,5 @@ public class AjusteEstoqueProdutoRequestDTO {
 
     @Schema(description = "O motivo da movimentação manual.", example = "Correção de inventário - contagem física.")
     private String motivo;
+
 }

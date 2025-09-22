@@ -1,5 +1,6 @@
 package com.dcriar.api.validation.validator;
 
+import com.dcriar.api.dto.request.product.ComposicaoRequestDTO;
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.validation.annotation.ValidProdutoRequest;
 import jakarta.validation.ConstraintValidator;
@@ -38,17 +39,25 @@ public class ProdutoRequestValidator implements ConstraintValidator<ValidProduto
             valid = false;
         }
 
-        if (dto.getComposicao() != null) {
-            dto.getComposicao().forEach(comp -> {
-                if (comp.materiaPrimaId() == null) {
+        // Validação da composição
+        if (dto.getComposicao() == null || dto.getComposicao().isEmpty()) {
+            context.buildConstraintViolationWithTemplate("Todo produto deve ter pelo menos uma composição.")
+                    .addPropertyNode("composicao").addConstraintViolation();
+            valid = false;
+        } else {
+            for (int i = 0; i < dto.getComposicao().size(); i++) {
+                ComposicaoRequestDTO comp = dto.getComposicao().toArray(new ComposicaoRequestDTO[0])[i];
+                if (comp.getMateriaPrimaId() == null) {
                     context.buildConstraintViolationWithTemplate("O ID da matéria-prima é obrigatório.")
-                            .addPropertyNode("composicao.materiaPrimaId").addConstraintViolation();
+                            .addPropertyNode("composicao[" + i + "].materiaPrimaId").addConstraintViolation();
+                    valid = false;
                 }
-                if (comp.gastoMaterialPorUnidade() == null || comp.gastoMaterialPorUnidade().doubleValue() <= 0) {
+                if (comp.getGastoMaterialPorUnidade() == null || comp.getGastoMaterialPorUnidade().doubleValue() <= 0) {
                     context.buildConstraintViolationWithTemplate("O gasto de material deve ser um número positivo.")
-                            .addPropertyNode("composicao.gastoMaterialPorUnidade").addConstraintViolation();
+                            .addPropertyNode("composicao[" + i + "].gastoMaterialPorUnidade").addConstraintViolation();
+                    valid = false;
                 }
-            });
+            }
         }
 
         return valid;

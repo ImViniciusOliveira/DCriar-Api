@@ -3,12 +3,8 @@ package com.dcriar.api.dto.response.product;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
-/**
- * DTO (Data Transfer Object) para enviar dados de um Produto como resposta da API.
- * <p>
- * Fornece uma representação segura e formatada da entidade para o cliente,
- * agora enriquecida com um resumo completo do seu estado de estoque.
- */
+import java.util.Set;
+
 @Getter
 @Setter
 @Builder
@@ -25,13 +21,13 @@ public class ProdutoResponseDTO {
     @Schema(description = "Código único de produto (SKU).", example = "ETQ-KRAFT-RD5")
     private String sku;
 
-    @Schema(description = "Descrição detalhada do produto.")
+    @Schema(description = "Descrição detalhada do produto.", example = "Etiqueta adesiva redonda de papel kraft 5x5cm")
     private String descricao;
 
     @Schema(description = "Cor principal do produto.", example = "Marrom")
     private String cor;
 
-    @Schema(description = "Quantidade de etiquetas em um único produto vendido.", example = "100")
+    @Schema(description = "Quantidade de unidades por produto vendido.", example = "100")
     private Integer unidadesPorProduto;
 
     @Schema(description = "Indica se o produto está ativo para venda.", example = "true")
@@ -40,12 +36,15 @@ public class ProdutoResponseDTO {
     @Schema(description = "URL da imagem principal do produto.")
     private String fotoPrincipalUrl;
 
-    @Schema(description = "O total de unidades físicas deste produto no estoque (Estoque Mestre).")
+    @Schema(description = "Quantidade total em estoque (Estoque Mestre).", example = "150")
     private Integer estoqueFisicoTotal;
 
-    @Schema(description = "O total de unidades já distribuídas pelos canais de venda.")
+    @Schema(description = "Quantidade distribuída pelos canais de venda.", example = "100")
     private Integer estoqueDistribuidoTotal;
 
-    @Schema(description = "O saldo de unidades disponíveis para serem alocadas a um canal.")
+    @Schema(description = "Saldo de unidades disponíveis para alocação em canais de venda.", example = "50")
     private Integer estoqueDisponivelParaAlocar;
+
+    @Schema(description = "Composição do produto em matérias-primas associadas.")
+    private Set<ComposicaoResponseDTO> composicao;
 }

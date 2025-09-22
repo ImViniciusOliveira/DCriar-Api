@@ -28,7 +28,8 @@ public class LoteMateriaPrimaRequestDTO {
     @Schema(description = "O valor total pago por este lote.", example = "150.00")
     private BigDecimal custoTotalLote;
 
-    @Schema(description = "Atributos flexíveis do lote, como largura, fornecedor, etc.")
+    @Schema(description = "Atributos flexíveis do lote, como largura, fornecedor, etc.",
+            example = "{ \"larguraMm\": 600, \"fornecedor\": \"Adesivos Premium\", \"observacao\": \"Opcional\" }")
     private Map<String, Object> atributos;
 
     @Schema(description = "Motivo opcional para a movimentação de entrada.")

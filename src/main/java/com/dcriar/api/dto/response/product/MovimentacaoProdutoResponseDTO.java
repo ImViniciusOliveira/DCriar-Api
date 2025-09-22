@@ -6,11 +6,6 @@ import lombok.*;
 
 import java.time.OffsetDateTime;
 
-/**
- * DTO para enviar os dados de uma única movimentação do Estoque Mestre como resposta da API.
- * <p>
- * Representa uma linha do "Livro-Razão" (histórico) de um produto acabado.
- */
 @Getter
 @Setter
 @Builder
@@ -21,15 +16,15 @@ public class MovimentacaoProdutoResponseDTO {
     @Schema(description = "ID único da movimentação.", example = "1")
     private Long id;
 
-    @Schema(description = "Data e hora em que a movimentação foi registada.")
+    @Schema(description = "Data e hora da movimentação.", example = "2025-09-22T03:13:23.522Z")
     private OffsetDateTime data;
 
-    @Schema(description = "O tipo da movimentação.", example = "ENTRADA_PRODUCAO")
+    @Schema(description = "Tipo da movimentação do estoque.", example = "ENTRADA_PRODUCAO")
     private TipoMovimentacaoProduto tipo;
 
-    @Schema(description = "A quantidade que foi movimentada. Positiva para entradas, negativa para saídas.", example = "100")
+    @Schema(description = "Quantidade movimentada. Positiva para entradas, negativa para saídas.", example = "100")
     private Integer quantidade;
 
-    @Schema(description = "O motivo ou observação registado para a movimentação.", example = "Produzido via Ordem de Corte ID: #123")
+    @Schema(description = "Motivo ou observação da movimentação.", example = "Produzido via Ordem de Corte ID: #123")
     private String motivo;
 }

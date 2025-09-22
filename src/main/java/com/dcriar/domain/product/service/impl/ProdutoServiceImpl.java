@@ -1,5 +1,6 @@
 package com.dcriar.domain.product.service.impl;
 
+import com.dcriar.api.dto.request.product.ComposicaoRequestDTO;
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
@@ -8,11 +9,13 @@ import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
-import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.product.repository.ProdutoRepository;
+import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.product.service.ProdutoService;
-import jakarta.persistence.EntityNotFoundException;
+import com.dcriar.exception.custom.ProdutoNotFoundException;
+import com.dcriar.exception.custom.RegraNegocioException;
+import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +24,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Implementação da lógica de negócio para gerenciamento de Produtos.
- */
 @Service
 @RequiredArgsConstructor
 public class ProdutoServiceImpl implements ProdutoService {
@@ -52,6 +52,9 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Override
     @Transactional
     public ProdutoResponseDTO create(ProdutoRequestDTO requestDTO) {
+        validarComposicaoObrigatoria(requestDTO.getComposicao());
+        validarNomeESkuUnicos(requestDTO.getNome(), requestDTO.getSku());
+
         Produto produto = Produto.from(requestDTO);
         atualizarComposicaoDoProduto(produto, requestDTO.getComposicao());
         Produto produtoSalvo = produtoRepository.save(produto);
@@ -62,6 +65,9 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Transactional
     public ProdutoResponseDTO update(Long id, ProdutoRequestDTO requestDTO) {
         Produto produto = findProdutoById(id);
+        validarComposicaoObrigatoria(requestDTO.getComposicao());
+        validarNomeESkuUnicosParaUpdate(id, requestDTO.getNome(), requestDTO.getSku());
+
         produto.updateFrom(requestDTO);
         produto.limparComposicao();
         atualizarComposicaoDoProduto(produto, requestDTO.getComposicao());
@@ -73,25 +79,25 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Transactional
     public void deleteById(Long id) {
         if (!produtoRepository.existsById(id)) {
-            throw new EntityNotFoundException("Produto não encontrado com o ID: " + id);
+            throw new ProdutoNotFoundException(id);
         }
         produtoRepository.deleteById(id);
     }
 
-    /**
-     * Método auxiliar para mapear e enriquecer um Produto com o resumo de estoque.
-     */
+    /* ============================
+       Métodos auxiliares privados
+       ============================ */
+
     private ProdutoResponseDTO mapAndEnrichProduto(Produto produto) {
-        // 1. Mapeamento básico
         ProdutoResponseDTO dto = produtoMapper.toResponseDTO(produto);
 
-        // 2. Cálculo dos valores de estoque
         Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
         List<Estoque> estoquesAtuais = estoqueRepository.findAllByProduto(produto);
-        int estoqueDistribuidoTotal = estoquesAtuais.stream().mapToInt(Estoque::getQuantidade).sum();
+        int estoqueDistribuidoTotal = estoquesAtuais.stream()
+                .mapToInt(Estoque::getQuantidade)
+                .sum();
         int estoqueDisponivelParaAlocar = estoqueFisicoTotal - estoqueDistribuidoTotal;
 
-        // 3. Preenchimento dos novos campos no DTO
         dto.setEstoqueFisicoTotal(estoqueFisicoTotal);
         dto.setEstoqueDistribuidoTotal(estoqueDistribuidoTotal);
         dto.setEstoqueDisponivelParaAlocar(estoqueDisponivelParaAlocar);
@@ -101,23 +107,43 @@ public class ProdutoServiceImpl implements ProdutoService {
 
     private Produto findProdutoById(Long id) {
         return produtoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Produto não encontrado com o ID: " + id));
+                .orElseThrow(() -> new ProdutoNotFoundException(id));
     }
 
-    private void atualizarComposicaoDoProduto(Produto produto, Set<ProdutoRequestDTO.ComposicaoRequestDTO> composicaoRequest) {
-        if (composicaoRequest == null || composicaoRequest.isEmpty()) {
-            return;
-        }
-
-        for (ProdutoRequestDTO.ComposicaoRequestDTO itemDTO : composicaoRequest) {
-            TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(itemDTO.materiaPrimaId())
-                    .orElseThrow(() -> new EntityNotFoundException("Tipo de Matéria-Prima não encontrado com o ID: " + itemDTO.materiaPrimaId()));
+    private void atualizarComposicaoDoProduto(Produto produto, Set<ComposicaoRequestDTO> composicaoRequest) {
+        for (ComposicaoRequestDTO itemDTO : composicaoRequest) {
+            TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(itemDTO.getMateriaPrimaId())
+                    .orElseThrow(() -> new TipoMateriaPrimaNotFoundException(itemDTO.getMateriaPrimaId()));
 
             ComposicaoProduto itemComposicao = ComposicaoProduto.builder()
                     .tipoMateriaPrima(tipoMateriaPrima)
-                    .gastoMaterialPorUnidade(itemDTO.gastoMaterialPorUnidade())
+                    .gastoMaterialPorUnidade(itemDTO.getGastoMaterialPorUnidade())
                     .build();
             produto.adicionarComposicao(itemComposicao);
+        }
+    }
+
+    private void validarComposicaoObrigatoria(Set<ComposicaoRequestDTO> composicao) {
+        if (composicao == null || composicao.isEmpty()) {
+            throw new RegraNegocioException("Todo produto deve ter pelo menos uma composição.");
+        }
+    }
+
+    private void validarNomeESkuUnicos(String nome, String sku) {
+        if (produtoRepository.existsByNome(nome)) {
+            throw new RegraNegocioException("Já existe um produto com esse nome: " + nome);
+        }
+        if (produtoRepository.existsBySku(sku)) {
+            throw new RegraNegocioException("Já existe um produto com esse SKU: " + sku);
+        }
+    }
+
+    private void validarNomeESkuUnicosParaUpdate(Long id, String nome, String sku) {
+        if (produtoRepository.existsByNomeAndIdNot(nome, id)) {
+            throw new RegraNegocioException("Já existe outro produto com esse nome: " + nome);
+        }
+        if (produtoRepository.existsBySkuAndIdNot(sku, id)) {
+            throw new RegraNegocioException("Já existe outro produto com esse SKU: " + sku);
         }
     }
 }
