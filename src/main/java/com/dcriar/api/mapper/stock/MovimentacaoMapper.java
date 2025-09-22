@@ -15,7 +15,7 @@ public interface MovimentacaoMapper {
     /**
      * Converte a entidade MovimentacaoEstoqueLote para um DTO de resposta.
      * <p>
-     * O MapStruct irá mapear automaticamente todos os campos com nomes correspondentes,
+     * O MapStruct irá mapear automaticamente todos os campos    com nomes correspondentes,
      * incluindo o novo campo 'custoPorUnidadeBase'.
      *
      * @param movimentacao A entidade de origem.
