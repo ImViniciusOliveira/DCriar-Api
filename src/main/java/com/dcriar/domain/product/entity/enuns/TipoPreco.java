@@ -16,5 +16,5 @@ public enum TipoPreco {
     /**
      * Preço especial para revendedores ou compras em grande quantidade.
      */
-    REVENDA;
+    REVENDA
 }

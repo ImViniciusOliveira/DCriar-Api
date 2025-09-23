@@ -23,6 +23,5 @@ public enum TipoMovimentacaoProduto {
      * justificar entradas/saídas que não vêm da produção ou de vendas (ex: devoluções).
      * (Pode ser positivo ou negativo)
      */
-    AJUSTE_MANUAL;
+    AJUSTE_MANUAL
 }
-

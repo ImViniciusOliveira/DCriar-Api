@@ -46,6 +46,6 @@ public class MovimentacaoEstoqueProduto {
     @Column(nullable = false)
     private Integer quantidade;
 
-    @Column(length = 255)
+    @Column(length = 254)
     private String motivo;
 }
