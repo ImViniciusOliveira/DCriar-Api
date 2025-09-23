@@ -18,7 +18,6 @@ import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.exception.custom.CanalVendaNotFoundException;
 import com.dcriar.exception.custom.EstoqueInsuficienteException;
-import com.dcriar.exception.custom.EstoqueNegativoNoCanalException;
 import com.dcriar.exception.custom.ProdutoNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -68,14 +67,14 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         int novaQuantidade = estoque.getQuantidade() + requestDTO.getQuantidade();
 
         // --- INÍCIO DA MODIFICAÇÃO ---
-        // Em vez de lançar um erro genérico, agora lançamos a nossa exceção especialista,
-        // que carrega todo o contexto do erro.
+        // Em vez de lançar um erro genérico ou a exceção antiga, agora lançamos a nossa
+        // exceção unificada, que carrega todo o contexto do erro.
         if (novaQuantidade < 0) {
-            throw new EstoqueNegativoNoCanalException(
+            throw new EstoqueInsuficienteException(
                     produto.getId(),
                     canalVenda.getId(),
-                    estoque.getQuantidade(), // O estoque atual antes da operação
-                    requestDTO.getQuantidade() // A quantidade que se tentou remover
+                    requestDTO.getQuantidade(), // A quantidade que se tentou remover
+                    estoque.getQuantidade() // O estoque atual antes da operação
             );
         }
         // --- FIM DA MODIFICAÇÃO ---

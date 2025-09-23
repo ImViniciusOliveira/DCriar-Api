@@ -6,7 +6,7 @@ import com.dcriar.api.mapper.stock.TipoMateriaPrimaMapper;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.stock.service.TipoMateriaPrimaService;
-import jakarta.persistence.EntityNotFoundException;
+import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,7 +66,7 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     @Transactional
     public void deleteById(Long id) {
         if (!tipoMateriaPrimaRepository.existsById(id)) {
-            throw new EntityNotFoundException("Tipo de matéria-prima não encontrado com o ID: " + id);
+            throw new TipoMateriaPrimaNotFoundException(id);
         }
         tipoMateriaPrimaRepository.deleteById(id);
     }
@@ -79,7 +79,6 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
      */
     private TipoMateriaPrima findTipoById(Long id) {
         return tipoMateriaPrimaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Tipo de matéria-prima não encontrado com o ID: " + id));
+                .orElseThrow(() -> new TipoMateriaPrimaNotFoundException(id));
     }
 }
-

@@ -15,7 +15,10 @@ import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
-import jakarta.persistence.EntityNotFoundException;
+import com.dcriar.exception.custom.EstoqueInsuficienteParaMovimentacaoException;
+import com.dcriar.exception.custom.EstoqueException;
+import com.dcriar.exception.custom.LoteMateriaPrimaNotFoundException;
+import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,9 +28,6 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Implementação da lógica de negócio para gerenciamento de Lotes de Matéria-Prima.
- */
 @Service
 @RequiredArgsConstructor
 public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
@@ -42,7 +42,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     @Transactional
     public LoteMateriaPrimaResponseDTO create(LoteMateriaPrimaRequestDTO requestDTO) {
         TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
-                .orElseThrow(() -> new EntityNotFoundException("Tipo de Matéria-Prima não encontrado com o ID: " + requestDTO.getTipoMateriaPrimaId()));
+                .orElseThrow(() -> new TipoMateriaPrimaNotFoundException(requestDTO.getTipoMateriaPrimaId()));
 
         LoteMateriaPrima novoLote = LoteMateriaPrima.builder()
                 .tipoMateriaPrima(tipoMateriaPrima)
@@ -50,9 +50,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .atributos(requestDTO.getAtributos())
                 .build();
 
-        // --- INÍCIO DA NOVA LÓGICA DE CUSTEIO ---
         BigDecimal custoPorUnidadeBase = calcularCustoPorUnidadeBase(requestDTO, tipoMateriaPrima);
-        // --- FIM DA NOVA LÓGICA DE CUSTEIO ---
 
         MovimentacaoEstoqueLote movimentacaoInicial = MovimentacaoEstoqueLote.builder()
                 .lote(novoLote)
@@ -71,10 +69,6 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return responseDTO;
     }
 
-    /**
-     * Calcula o custo por unidade base de um lote no momento da sua entrada.
-     * Ex: Calcula o custo por cm² de um rolo de adesivo.
-     */
     private BigDecimal calcularCustoPorUnidadeBase(LoteMateriaPrimaRequestDTO dto, TipoMateriaPrima tipo) {
         if (dto.getCustoTotalLote() == null) {
             return null;
@@ -84,36 +78,32 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         UnidadeDeMedida unidadeConsumo = tipo.getUnidadeDeConsumo();
 
         switch (dto.getUnidadeDeEstoque()) {
-            case METRO_LINEAR:
+            case METRO_LINEAR -> {
                 if (unidadeConsumo != UnidadeDeMedida.CENTIMETRO_QUADRADO) {
-                    throw new IllegalStateException("Cálculo de custo para METRO_LINEAR só é suportado com consumo em CENTIMETRO_QUADRADO.");
+                    throw new EstoqueException("Cálculo de custo para METRO_LINEAR só é suportado com consumo em CENTIMETRO_QUADRADO.");
                 }
                 Object larguraMmObj = dto.getAtributos().get("larguraMm");
                 if (!(larguraMmObj instanceof Number)) {
-                    throw new IllegalStateException("Para lotes em METRO_LINEAR, o atributo 'larguraMm' é obrigatório para o cálculo de custo.");
+                    throw new EstoqueException("Para lotes em METRO_LINEAR, o atributo 'larguraMm' é obrigatório para o cálculo de custo.");
                 }
-                BigDecimal larguraCm = new BigDecimal(((Number) larguraMmObj).intValue()).divide(new BigDecimal("10"));
+                BigDecimal larguraCm = new BigDecimal(((Number) larguraMmObj).intValue())
+                        .divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
                 BigDecimal comprimentoCm = dto.getQuantidadeInicial().multiply(new BigDecimal("100"));
-                totalUnidadesBase = larguraCm.multiply(comprimentoCm); // Área Total em cm²
-                break;
-            case LITRO:
+                totalUnidadesBase = larguraCm.multiply(comprimentoCm);
+            }
+            case LITRO -> {
                 if (unidadeConsumo != UnidadeDeMedida.MILILITRO) {
-                    throw new IllegalStateException("Cálculo de custo para LITRO só é suportado com consumo em MILILITRO.");
+                    throw new EstoqueException("Cálculo de custo para LITRO só é suportado com consumo em MILILITRO.");
                 }
                 totalUnidadesBase = dto.getQuantidadeInicial().multiply(new BigDecimal("1000"));
-                break;
-            case UNIDADE:
-            case GRAMA:
-            default:
-                totalUnidadesBase = dto.getQuantidadeInicial();
-                break;
+            }
+            default -> totalUnidadesBase = dto.getQuantidadeInicial();
         }
 
         if (totalUnidadesBase.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("A quantidade total de unidades base para cálculo de custo deve ser maior que zero.");
+            throw new EstoqueException("A quantidade total de unidades base para cálculo de custo deve ser maior que zero.");
         }
 
-        // Custo por Unidade Base = Custo Total do Lote / Total de Unidades Base
         return dto.getCustoTotalLote().divide(totalUnidadesBase, 8, RoundingMode.HALF_UP);
     }
 
@@ -146,12 +136,16 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     @Transactional
     public MovimentacaoResponseDTO registrarMovimentacao(Long loteId, MovimentacaoRequestDTO requestDTO) {
         LoteMateriaPrima lote = findLoteById(loteId);
+        BigDecimal saldoAtual = calcularSaldo(lote);
 
-        if (requestDTO.getQuantidade().compareTo(BigDecimal.ZERO) < 0) {
-            BigDecimal saldoAtual = calcularSaldo(lote);
-            if (saldoAtual.add(requestDTO.getQuantidade()).compareTo(BigDecimal.ZERO) < 0) {
-                throw new IllegalArgumentException("Saldo de estoque insuficiente para esta operação.");
-            }
+        // Verificação de saldo
+        if (saldoAtual.add(requestDTO.getQuantidade()).compareTo(BigDecimal.ZERO) < 0) {
+            // Lança a nova exceção que não depende de canal
+            throw new EstoqueInsuficienteParaMovimentacaoException(
+                    lote.getId(),
+                    requestDTO.getQuantidade().doubleValue(),
+                    saldoAtual.doubleValue()
+            );
         }
 
         MovimentacaoEstoqueLote novaMovimentacao = MovimentacaoEstoqueLote.builder()
@@ -177,11 +171,10 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
 
     private LoteMateriaPrima findLoteById(Long id) {
         return loteMateriaPrimaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Lote de Matéria-Prima não encontrado com o ID: " + id));
+                .orElseThrow(() -> new LoteMateriaPrimaNotFoundException(id));
     }
 
     private BigDecimal calcularSaldo(LoteMateriaPrima lote) {
         return movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
     }
 }
-

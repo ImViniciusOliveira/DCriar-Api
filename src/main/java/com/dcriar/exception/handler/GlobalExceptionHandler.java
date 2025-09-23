@@ -43,11 +43,6 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex, HttpStatus.NOT_FOUND, Map.of("materiaPrimaId", ex.getMateriaPrimaId().toString()));
     }
 
-    @ExceptionHandler(EstoqueInsuficienteException.class)
-    public ResponseEntity<ErrorDTO> handleEstoqueInsuficiente(EstoqueInsuficienteException ex) {
-        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, Map.of("produtoId", ex.getProdutoId().toString()));
-    }
-
     @ExceptionHandler(RegraNegocioException.class)
     public ResponseEntity<ErrorDTO> handleRegraNegocio(RegraNegocioException ex) {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, Map.of("info", ex.getMessage()));
@@ -63,10 +58,47 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, Map.of("produtoId", ex.getProdutoId().toString()));
     }
 
-    @ExceptionHandler(EstoqueNegativoNoCanalException.class)
-    public ResponseEntity<ErrorDTO> handleEstoqueNegativoNoCanalException(EstoqueNegativoNoCanalException ex) {
-        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, Map.of("produtoId", ex.getProdutoId().toString()));
+    @ExceptionHandler(EstoqueException.class)
+    public ResponseEntity<ErrorDTO> handleEstoqueException(EstoqueException ex) {
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, Map.of("info", ex.getMessage()));
     }
+
+    @ExceptionHandler(EstoqueInsuficienteParaMovimentacaoException.class)
+    public ResponseEntity<ErrorDTO> handleEstoqueInsuficienteParaMovimentacao(EstoqueInsuficienteParaMovimentacaoException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                new ErrorDTO(
+                        Instant.now(),
+                        HttpStatus.BAD_REQUEST.value(),
+                        "Bad Request",
+                        ex.getMessage(),
+                        Map.of(
+                                "loteId", String.valueOf(ex.getLoteId()),
+                                "quantidadeRequisitada", String.valueOf(Math.abs(ex.getQuantidadeRequisitada())),
+                                "estoqueAtual", String.valueOf(ex.getSaldoDisponivel())
+                        )
+                )
+        );
+    }
+
+
+    @ExceptionHandler(EstoqueInsuficienteException.class)
+    public ResponseEntity<ErrorDTO> handleEstoqueNegativoNoCanalException(EstoqueInsuficienteException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                new ErrorDTO(
+                        Instant.now(),
+                        HttpStatus.BAD_REQUEST.value(),
+                        "Bad Request",
+                        ex.getMessage(),
+                        Map.of(
+                                "produtoId", ex.getProdutoId().toString(),
+                                "canalVendaId", ex.getCanalVendaId().toString(),
+                                "quantidadeRequisitada", String.valueOf(Math.abs(ex.getQuantidadeRequisitada())),
+                                "estoqueAtual", String.valueOf(ex.getEstoqueAtual())
+                        )
+                )
+        );
+    }
+
 
     // ============================
     // Exceções de validação

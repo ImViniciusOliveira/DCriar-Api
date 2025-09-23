@@ -22,8 +22,6 @@ public interface LoteMateriaPrimaMapper {
      * @return O DTO de resposta correspondente.
      */
     @Mapping(source = "tipoMateriaPrima.nome", target = "nomeTipoMateriaPrima")
-    // Adicionamos o mapeamento para o ID do lote de origem.
-    // Se o loteDeOrigem for nulo, o MapStruct irá inteligentemente passar o valor nulo para o DTO.
     @Mapping(source = "loteDeOrigem.id", target = "loteDeOrigemId")
     @Mapping(target = "saldoEstoque", ignore = true)
     LoteMateriaPrimaResponseDTO toResponseDTO(LoteMateriaPrima lote);
