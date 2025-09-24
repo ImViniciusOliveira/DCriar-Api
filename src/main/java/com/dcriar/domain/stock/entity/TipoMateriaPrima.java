@@ -1,6 +1,6 @@
 package com.dcriar.domain.stock.entity;
 
-import com.dcriar.domain.stock.entity.enuns.UnidadeDeMedida;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import jakarta.persistence.*;
 import lombok.*;
 

@@ -1,4 +1,4 @@
-package com.dcriar.domain.stock.entity.enuns;
+package com.dcriar.domain.stock.entity.enums;
 
 import lombok.Getter;
 

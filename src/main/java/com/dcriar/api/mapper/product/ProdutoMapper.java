@@ -1,8 +1,6 @@
 package com.dcriar.api.mapper.product;
 
-import com.dcriar.api.dto.response.product.ComposicaoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
-import com.dcriar.domain.product.entity.ComposicaoProduto;
 import com.dcriar.domain.product.entity.Produto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -21,18 +19,5 @@ public interface ProdutoMapper {
     @Mapping(target = "estoqueDistribuidoTotal", ignore = true)
     @Mapping(target = "estoqueDisponivelParaAlocar", ignore = true)
     ProdutoResponseDTO toResponseDTO(Produto produto);
-
-    /**
-     * Mapeia um item da composição (entidade) para seu DTO de resposta.
-     * <p>
-     * CORREÇÃO: A origem (source) do mapeamento foi atualizada de "materiaPrima" para "tipoMateriaPrima",
-     * alinhando o mapper com a refatoração da entidade ComposicaoProduto.
-     *
-     * @param composicaoProduto A entidade de composição a ser convertida.
-     * @return O DTO de resposta da composição.
-     */
-    @Mapping(source = "tipoMateriaPrima.id", target = "materiaPrimaId")
-    @Mapping(source = "tipoMateriaPrima.nome", target = "nomeMateriaPrima")
-    ComposicaoResponseDTO toComposicaoResponseDTO(ComposicaoProduto composicaoProduto);
 }
 

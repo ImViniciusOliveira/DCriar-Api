@@ -1,4 +1,4 @@
-package com.dcriar.domain.product.entity.enuns;
+package com.dcriar.domain.product.entity.enums;
 
 /**
  * Enum que representa os diferentes tipos de precificação para um produto.

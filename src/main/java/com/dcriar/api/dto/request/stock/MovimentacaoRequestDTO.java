@@ -1,7 +1,7 @@
 package com.dcriar.api.dto.request.stock;
 
 import com.dcriar.api.validation.annotation.ValidMovimentacaoRequest;
-import com.dcriar.domain.stock.entity.enuns.TipoMovimentacao;
+import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;

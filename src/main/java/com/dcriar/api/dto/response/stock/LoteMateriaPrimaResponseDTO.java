@@ -1,6 +1,6 @@
 package com.dcriar.api.dto.response.stock;
 
-import com.dcriar.domain.stock.entity.enuns.UnidadeDeMedida;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 

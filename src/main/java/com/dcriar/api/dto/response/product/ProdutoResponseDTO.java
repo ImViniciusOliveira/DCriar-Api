@@ -3,8 +3,6 @@ package com.dcriar.api.dto.response.product;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
-import java.util.Set;
-
 @Getter
 @Setter
 @Builder
@@ -44,7 +42,4 @@ public class ProdutoResponseDTO {
 
     @Schema(description = "Saldo de unidades disponíveis para alocação em canais de venda.", example = "50")
     private Integer estoqueDisponivelParaAlocar;
-
-    @Schema(description = "Composição do produto em matérias-primas associadas.")
-    private Set<ComposicaoResponseDTO> composicao;
 }

@@ -1,4 +1,4 @@
-package com.dcriar.domain.stock.entity.enuns;
+package com.dcriar.domain.stock.entity.enums;
 
 /**
  * Enum que representa os diferentes tipos de movimentação que podem ocorrer no estoque de um lote de matéria-prima.

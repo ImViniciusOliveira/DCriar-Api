@@ -1,6 +1,6 @@
 package com.dcriar.domain.product.entity;
 
-import com.dcriar.domain.product.entity.enuns.TipoMovimentacaoProduto;
+import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

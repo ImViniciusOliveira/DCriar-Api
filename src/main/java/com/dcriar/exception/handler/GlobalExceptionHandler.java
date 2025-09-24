@@ -58,8 +58,8 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, Map.of("produtoId", ex.getProdutoId().toString()));
     }
 
-    @ExceptionHandler(EstoqueException.class)
-    public ResponseEntity<ErrorDTO> handleEstoqueException(EstoqueException ex) {
+    @ExceptionHandler(EstoqueRegraNegocioException.class)
+    public ResponseEntity<ErrorDTO> handleEstoqueException(EstoqueRegraNegocioException ex) {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, Map.of("info", ex.getMessage()));
     }
 
@@ -81,8 +81,8 @@ public class GlobalExceptionHandler {
     }
 
 
-    @ExceptionHandler(EstoqueInsuficienteException.class)
-    public ResponseEntity<ErrorDTO> handleEstoqueNegativoNoCanalException(EstoqueInsuficienteException ex) {
+    @ExceptionHandler(EstoqueInsuficienteCanalException.class)
+    public ResponseEntity<ErrorDTO> handleEstoqueNegativoNoCanalException(EstoqueInsuficienteCanalException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 new ErrorDTO(
                         Instant.now(),

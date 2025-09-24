@@ -2,7 +2,7 @@ package com.dcriar.domain.product.repository;
 
 import com.dcriar.domain.product.entity.Preco;
 import com.dcriar.domain.product.entity.Produto;
-import com.dcriar.domain.product.entity.enuns.TipoPreco;
+import com.dcriar.domain.product.entity.enums.TipoPreco;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

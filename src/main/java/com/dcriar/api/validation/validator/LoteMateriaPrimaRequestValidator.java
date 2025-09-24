@@ -2,7 +2,7 @@ package com.dcriar.api.validation.validator;
 
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.validation.annotation.ValidLoteMateriaPrimaRequest;
-import com.dcriar.domain.stock.entity.enuns.UnidadeDeMedida;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.math.BigDecimal;

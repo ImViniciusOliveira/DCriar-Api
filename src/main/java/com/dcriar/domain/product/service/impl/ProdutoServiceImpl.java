@@ -1,10 +1,8 @@
 package com.dcriar.domain.product.service.impl;
 
-import com.dcriar.api.dto.request.product.ComposicaoRequestDTO;
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
-import com.dcriar.domain.product.entity.ComposicaoProduto;
 import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.repository.EstoqueRepository;
@@ -21,9 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Implementação da lógica de negócio para gerenciamento de Produtos ("moldes").
+ */
 @Service
 @RequiredArgsConstructor
 public class ProdutoServiceImpl implements ProdutoService {
@@ -52,11 +52,18 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Override
     @Transactional
     public ProdutoResponseDTO create(ProdutoRequestDTO requestDTO) {
-        validarComposicaoObrigatoria(requestDTO.getComposicao());
         validarNomeESkuUnicos(requestDTO.getNome(), requestDTO.getSku());
 
+        // 1. Busca a dependência (TipoMateriaPrima)
+        TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
+                .orElseThrow(() -> new TipoMateriaPrimaNotFoundException(requestDTO.getTipoMateriaPrimaId()));
+
+        // 2. Cria a entidade a partir do DTO
         Produto produto = Produto.from(requestDTO);
-        atualizarComposicaoDoProduto(produto, requestDTO.getComposicao());
+
+        // 3. Define a relação
+        produto.setTipoMateriaPrima(tipoMateriaPrima);
+
         Produto produtoSalvo = produtoRepository.save(produto);
         return mapAndEnrichProduto(produtoSalvo);
     }
@@ -65,12 +72,18 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Transactional
     public ProdutoResponseDTO update(Long id, ProdutoRequestDTO requestDTO) {
         Produto produto = findProdutoById(id);
-        validarComposicaoObrigatoria(requestDTO.getComposicao());
         validarNomeESkuUnicosParaUpdate(id, requestDTO.getNome(), requestDTO.getSku());
 
+        // 1. Busca a nova dependência (TipoMateriaPrima)
+        TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
+                .orElseThrow(() -> new TipoMateriaPrimaNotFoundException(requestDTO.getTipoMateriaPrimaId()));
+
+        // 2. Atualiza os dados da entidade a partir do DTO
         produto.updateFrom(requestDTO);
-        produto.limparComposicao();
-        atualizarComposicaoDoProduto(produto, requestDTO.getComposicao());
+
+        // 3. Define a nova relação
+        produto.setTipoMateriaPrima(tipoMateriaPrima);
+
         Produto produtoAtualizado = produtoRepository.save(produto);
         return mapAndEnrichProduto(produtoAtualizado);
     }
@@ -110,25 +123,6 @@ public class ProdutoServiceImpl implements ProdutoService {
                 .orElseThrow(() -> new ProdutoNotFoundException(id));
     }
 
-    private void atualizarComposicaoDoProduto(Produto produto, Set<ComposicaoRequestDTO> composicaoRequest) {
-        for (ComposicaoRequestDTO itemDTO : composicaoRequest) {
-            TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(itemDTO.getMateriaPrimaId())
-                    .orElseThrow(() -> new TipoMateriaPrimaNotFoundException(itemDTO.getMateriaPrimaId()));
-
-            ComposicaoProduto itemComposicao = ComposicaoProduto.builder()
-                    .tipoMateriaPrima(tipoMateriaPrima)
-                    .gastoMaterialPorUnidade(itemDTO.getGastoMaterialPorUnidade())
-                    .build();
-            produto.adicionarComposicao(itemComposicao);
-        }
-    }
-
-    private void validarComposicaoObrigatoria(Set<ComposicaoRequestDTO> composicao) {
-        if (composicao == null || composicao.isEmpty()) {
-            throw new RegraNegocioException("Todo produto deve ter pelo menos uma composição.");
-        }
-    }
-
     private void validarNomeESkuUnicos(String nome, String sku) {
         if (produtoRepository.existsByNome(nome)) {
             throw new RegraNegocioException("Já existe um produto com esse nome: " + nome);
@@ -147,3 +141,4 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
     }
 }
+

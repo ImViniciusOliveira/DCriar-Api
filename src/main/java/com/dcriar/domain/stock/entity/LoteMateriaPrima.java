@@ -1,6 +1,6 @@
 package com.dcriar.domain.stock.entity;
 
-import com.dcriar.domain.stock.entity.enuns.UnidadeDeMedida;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.*;

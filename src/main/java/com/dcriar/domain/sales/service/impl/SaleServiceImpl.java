@@ -9,8 +9,8 @@ import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Preco;
 import com.dcriar.domain.product.entity.Produto;
-import com.dcriar.domain.product.entity.enuns.TipoMovimentacaoProduto;
-import com.dcriar.domain.product.entity.enuns.TipoPreco;
+import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
+import com.dcriar.domain.product.entity.enums.TipoPreco;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.PrecoRepository;
@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 /**
  * Implementação da lógica de negócio para o módulo de Vendas (Sales).
  * Observações importantes:
- * - O método ajustarEstoque do EstoqueProdutoService lança {@link EstoqueInsuficienteException}
+ * - O método ajustarEstoque do EstoqueProdutoService lança {@link EstoqueInsuficienteCanalException}
  *   quando não há saldo suficiente. Aqui nós deixamos essa exceção propagar (não a "transformamos")
  *   para que o {@link com.dcriar.exception.handler.GlobalExceptionHandler} construa um ErrorDTO
  *   com detalhes (produtoId, canalVendaId, quantidadeRequisitada, estoqueAtual).
@@ -120,7 +120,7 @@ public class SaleServiceImpl implements SaleService {
     /**
      * Realiza as baixas de estoque no canal e cria a movimentação no estoque mestre.
      * Importante:
-     * - deixamos a {@link EstoqueInsuficienteException} propagar para que o GlobalExceptionHandler
+     * - deixamos a {@link EstoqueInsuficienteCanalException} propagar para que o GlobalExceptionHandler
      *   crie uma resposta http/400 com detalhes (produtoId, canalVendaId, quantidadeRequisitada, estoqueAtual).
      *
      * @param produto produto que será baixado

@@ -1,7 +1,7 @@
 package com.dcriar.api.dto.request.stock;
 
 import com.dcriar.api.validation.annotation.ValidLoteMateriaPrimaRequest;
-import com.dcriar.domain.stock.entity.enuns.UnidadeDeMedida;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;

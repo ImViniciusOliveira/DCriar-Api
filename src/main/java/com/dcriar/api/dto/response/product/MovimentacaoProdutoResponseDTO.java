@@ -1,6 +1,6 @@
 package com.dcriar.api.dto.response.product;
 
-import com.dcriar.domain.product.entity.enuns.TipoMovimentacaoProduto;
+import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 

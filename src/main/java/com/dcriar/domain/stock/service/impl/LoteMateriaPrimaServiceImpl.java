@@ -9,14 +9,14 @@ import com.dcriar.api.mapper.stock.MovimentacaoMapper;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
-import com.dcriar.domain.stock.entity.enuns.TipoMovimentacao;
-import com.dcriar.domain.stock.entity.enuns.UnidadeDeMedida;
+import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
 import com.dcriar.exception.custom.EstoqueInsuficienteParaMovimentacaoException;
-import com.dcriar.exception.custom.EstoqueException;
+import com.dcriar.exception.custom.EstoqueRegraNegocioException;
 import com.dcriar.exception.custom.LoteMateriaPrimaNotFoundException;
 import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -80,11 +80,11 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         switch (dto.getUnidadeDeEstoque()) {
             case METRO_LINEAR -> {
                 if (unidadeConsumo != UnidadeDeMedida.CENTIMETRO_QUADRADO) {
-                    throw new EstoqueException("Cálculo de custo para METRO_LINEAR só é suportado com consumo em CENTIMETRO_QUADRADO.");
+                    throw new EstoqueRegraNegocioException("Cálculo de custo para METRO_LINEAR só é suportado com consumo em CENTIMETRO_QUADRADO.");
                 }
                 Object larguraMmObj = dto.getAtributos().get("larguraMm");
                 if (!(larguraMmObj instanceof Number)) {
-                    throw new EstoqueException("Para lotes em METRO_LINEAR, o atributo 'larguraMm' é obrigatório para o cálculo de custo.");
+                    throw new EstoqueRegraNegocioException("Para lotes em METRO_LINEAR, o atributo 'larguraMm' é obrigatório para o cálculo de custo.");
                 }
                 BigDecimal larguraCm = new BigDecimal(((Number) larguraMmObj).intValue())
                         .divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
@@ -93,7 +93,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             }
             case LITRO -> {
                 if (unidadeConsumo != UnidadeDeMedida.MILILITRO) {
-                    throw new EstoqueException("Cálculo de custo para LITRO só é suportado com consumo em MILILITRO.");
+                    throw new EstoqueRegraNegocioException("Cálculo de custo para LITRO só é suportado com consumo em MILILITRO.");
                 }
                 totalUnidadesBase = dto.getQuantidadeInicial().multiply(new BigDecimal("1000"));
             }
@@ -101,7 +101,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         }
 
         if (totalUnidadesBase.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new EstoqueException("A quantidade total de unidades base para cálculo de custo deve ser maior que zero.");
+            throw new EstoqueRegraNegocioException("A quantidade total de unidades base para cálculo de custo deve ser maior que zero.");
         }
 
         return dto.getCustoTotalLote().divide(totalUnidadesBase, 8, RoundingMode.HALF_UP);

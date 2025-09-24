@@ -10,14 +10,14 @@ import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
-import com.dcriar.domain.product.entity.enuns.TipoMovimentacaoProduto;
+import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.exception.custom.CanalVendaNotFoundException;
-import com.dcriar.exception.custom.EstoqueInsuficienteException;
+import com.dcriar.exception.custom.EstoqueInsuficienteCanalException;
 import com.dcriar.exception.custom.ProdutoNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -55,7 +55,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
             int novoTotalDistribuido = totalDistribuido + requestDTO.getQuantidade();
 
             if (novoTotalDistribuido > estoqueFisicoTotal) {
-                throw new EstoqueInsuficienteException(produto.getId(),
+                throw new EstoqueInsuficienteCanalException(produto.getId(),
                         "O total distribuído (" + novoTotalDistribuido + ") não pode ultrapassar o estoque físico total (" + estoqueFisicoTotal + ").");
 
             }
@@ -70,7 +70,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         // Em vez de lançar um erro genérico ou a exceção antiga, agora lançamos a nossa
         // exceção unificada, que carrega todo o contexto do erro.
         if (novaQuantidade < 0) {
-            throw new EstoqueInsuficienteException(
+            throw new EstoqueInsuficienteCanalException(
                     produto.getId(),
                     canalVenda.getId(),
                     requestDTO.getQuantidade(), // A quantidade que se tentou remover

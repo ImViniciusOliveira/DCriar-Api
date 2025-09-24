@@ -1,6 +1,6 @@
 package com.dcriar.domain.product.entity;
 
-import com.dcriar.domain.product.entity.enuns.TipoPreco;
+import com.dcriar.domain.product.entity.enums.TipoPreco;
 import jakarta.persistence.*;
 import lombok.*;
 

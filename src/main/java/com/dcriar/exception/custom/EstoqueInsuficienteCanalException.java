@@ -10,7 +10,7 @@ import lombok.Getter;
  * detalhadas e úteis para o utilizador.
  */
 @Getter
-public class EstoqueInsuficienteException extends RuntimeException {
+public class EstoqueInsuficienteCanalException extends RuntimeException {
 
     private final Long produtoId;
     private final Long canalVendaId;
@@ -26,7 +26,7 @@ public class EstoqueInsuficienteException extends RuntimeException {
      * @param quantidadeRequisitada A quantidade que se tentou remover.
      * @param estoqueAtual A quantidade que estava disponível no momento da falha.
      */
-    public EstoqueInsuficienteException(Long produtoId, Long canalVendaId, int quantidadeRequisitada, int estoqueAtual) {
+    public EstoqueInsuficienteCanalException(Long produtoId, Long canalVendaId, int quantidadeRequisitada, int estoqueAtual) {
         super(String.format(
                 "Estoque insuficiente no canal. Tentativa de remover %d unidades do produto ID %d no canal ID %d, mas apenas %d unidades estavam disponíveis.",
                 Math.abs(quantidadeRequisitada), produtoId, canalVendaId, estoqueAtual
@@ -41,7 +41,7 @@ public class EstoqueInsuficienteException extends RuntimeException {
      * Construtor para erros genéricos de violação de regras de estoque, como a do Estoque Mestre,
      * onde o contexto do canal ou da quantidade pode não ser aplicável.
      */
-    public EstoqueInsuficienteException(Long produtoId, String message) {
+    public EstoqueInsuficienteCanalException(Long produtoId, String message) {
         super(message);
         this.produtoId = produtoId;
         this.canalVendaId = null;
