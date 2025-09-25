@@ -14,5 +14,5 @@ public enum ModoCalculo {
      * O operador ignora o cálculo automático e fornece diretamente as dimensões
      * finais do material que foi consumido.
      */
-    MANUAL;
+    MANUAL
 }

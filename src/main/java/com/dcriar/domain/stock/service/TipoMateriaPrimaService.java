@@ -24,7 +24,6 @@ public interface TipoMateriaPrimaService {
      *
      * @param id O ID do tipo de matéria-prima.
      * @return O {@link TipoMateriaPrimaResponseDTO} correspondente.
-     * @throws jakarta.persistence.EntityNotFoundException se o tipo não for encontrado.
      */
     TipoMateriaPrimaResponseDTO findById(Long id);
 
@@ -42,7 +41,6 @@ public interface TipoMateriaPrimaService {
      * @param id O ID do tipo a ser atualizado.
      * @param requestDTO O DTO com os novos dados.
      * @return O {@link TipoMateriaPrimaResponseDTO} do tipo atualizado.
-     * @throws jakarta.persistence.EntityNotFoundException se o tipo não for encontrado.
      */
     TipoMateriaPrimaResponseDTO update(Long id, TipoMateriaPrimaRequestDTO requestDTO);
 
@@ -50,7 +48,7 @@ public interface TipoMateriaPrimaService {
      * Deleta um tipo de matéria-prima pelo seu ID.
      *
      * @param id O ID do tipo a ser deletado.
-     * @throws jakarta.persistence.EntityNotFoundException se o tipo não for encontrado.
      */
     void deleteById(Long id);
+
 }

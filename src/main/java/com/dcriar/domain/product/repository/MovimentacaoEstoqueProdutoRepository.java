@@ -31,5 +31,7 @@ public interface MovimentacaoEstoqueProdutoRepository extends JpaRepository<Movi
      * @return Uma lista com todas as movimentações do produto.
      */
     List<MovimentacaoEstoqueProduto> findAllByProduto(Produto produto);
+
+    boolean existsByProduto(Produto produto);
 }
 

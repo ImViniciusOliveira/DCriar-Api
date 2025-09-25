@@ -12,4 +12,11 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface TipoMateriaPrimaRepository extends JpaRepository<TipoMateriaPrima, Long> {
+    /**
+     * Verifica se já existe um tipo de matéria-prima com o mesmo nome.
+     *
+     * @param nome Nome do tipo de matéria-prima.
+     * @return true se existir, false caso contrário.
+     */
+    boolean existsByNome(String nome);
 }

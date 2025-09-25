@@ -4,8 +4,11 @@ import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
 import com.dcriar.api.mapper.stock.TipoMateriaPrimaMapper;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
+import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.stock.service.TipoMateriaPrimaService;
+import com.dcriar.exception.custom.TipoMateriaPrimaAlreadyExistsException;
+import com.dcriar.exception.custom.TipoMateriaPrimaEmUsoException;
 import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,18 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Implementação da lógica de negócio para gestão de Tipos de Matéria-Prima.
- * <p>
- * Orquestra as operações de CRUD, validações e interações com o repositório,
- * garantindo a integridade dos dados através de transações.
- */
 @Service
 @RequiredArgsConstructor
 public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
 
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
     private final TipoMateriaPrimaMapper tipoMateriaPrimaMapper;
+    private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,47 +36,69 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     @Override
     @Transactional(readOnly = true)
     public TipoMateriaPrimaResponseDTO findById(Long id) {
-        TipoMateriaPrima tipoMateriaPrima = findTipoById(id);
-        return tipoMateriaPrimaMapper.toResponseDTO(tipoMateriaPrima);
+        TipoMateriaPrima tipo = findTipoById(id);
+        return tipoMateriaPrimaMapper.toResponseDTO(tipo);
     }
 
     @Override
     @Transactional
     public TipoMateriaPrimaResponseDTO create(TipoMateriaPrimaRequestDTO requestDTO) {
-        TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaMapper.toEntity(requestDTO);
-        TipoMateriaPrima tipoSalvo = tipoMateriaPrimaRepository.save(tipoMateriaPrima);
-        return tipoMateriaPrimaMapper.toResponseDTO(tipoSalvo);
+        validateNomeDisponivel(requestDTO.nome());
+
+        TipoMateriaPrima tipo = TipoMateriaPrima.builder()
+                .nome(requestDTO.nome())
+                .unidadeDeConsumo(requestDTO.unidadeDeConsumo())
+                .build();
+
+        TipoMateriaPrima salvo = tipoMateriaPrimaRepository.save(tipo);
+        return tipoMateriaPrimaMapper.toResponseDTO(salvo);
     }
 
     @Override
     @Transactional
     public TipoMateriaPrimaResponseDTO update(Long id, TipoMateriaPrimaRequestDTO requestDTO) {
-        TipoMateriaPrima tipoMateriaPrima = findTipoById(id);
+        TipoMateriaPrima tipo = findTipoById(id);
 
-        tipoMateriaPrima.setNome(requestDTO.nome());
-        tipoMateriaPrima.setUnidadeDeConsumo(requestDTO.unidadeDeConsumo());
+        if (requestDTO.nome() != null && !tipo.getNome().equalsIgnoreCase(requestDTO.nome())) {
+            validateNomeDisponivel(requestDTO.nome());
+            tipo.setNome(requestDTO.nome());
+        }
 
-        TipoMateriaPrima tipoAtualizado = tipoMateriaPrimaRepository.save(tipoMateriaPrima);
-        return tipoMateriaPrimaMapper.toResponseDTO(tipoAtualizado);
+        if (requestDTO.unidadeDeConsumo() != null) {
+            tipo.setUnidadeDeConsumo(requestDTO.unidadeDeConsumo());
+        }
+
+        TipoMateriaPrima atualizado = tipoMateriaPrimaRepository.save(tipo);
+        return tipoMateriaPrimaMapper.toResponseDTO(atualizado);
     }
 
     @Override
     @Transactional
     public void deleteById(Long id) {
-        if (!tipoMateriaPrimaRepository.existsById(id)) {
-            throw new TipoMateriaPrimaNotFoundException(id);
+        TipoMateriaPrima tipo = findTipoById(id);
+
+        // Verifica se o tipo está em uso
+        if (loteMateriaPrimaRepository.existsByTipoMateriaPrimaId(tipo.getId())) {
+            throw new TipoMateriaPrimaEmUsoException(
+                    "O tipo de matéria-prima está em uso em um lote e não pode ser excluído."
+            );
         }
-        tipoMateriaPrimaRepository.deleteById(id);
+
+        tipoMateriaPrimaRepository.delete(tipo);
     }
 
-    /**
-     * Método auxiliar para procurar um tipo de matéria-prima por ID, lançando uma exceção padronizada se não for encontrado.
-     *
-     * @param id O ID do tipo.
-     * @return A entidade TipoMateriaPrima encontrada.
-     */
+    /* ==========================
+       Métodos auxiliares privados
+       ========================== */
+
     private TipoMateriaPrima findTipoById(Long id) {
         return tipoMateriaPrimaRepository.findById(id)
                 .orElseThrow(() -> new TipoMateriaPrimaNotFoundException(id));
+    }
+
+    private void validateNomeDisponivel(String nome) {
+        if (tipoMateriaPrimaRepository.existsByNome(nome)) {
+            throw new TipoMateriaPrimaAlreadyExistsException(nome);
+        }
     }
 }

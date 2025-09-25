@@ -36,5 +36,5 @@ public enum TipoMovimentacao {
     /**
      * Regista a entrada de uma sobra (retalho) gerada a partir de um processo de produção. (Quantidade positiva)
      */
-    ENTRADA_SOBRA;
+    ENTRADA_SOBRA
 }

@@ -50,7 +50,7 @@ INSERT INTO movimentacoes_estoque_lote (lote_id, data, tipo, quantidade, motivo,
 INSERT INTO canais_venda (nome) VALUES ('LOJA_FISICA'), ('SHOPEE');
 
 -- ETAPA E: INSERIR PRODUTOS ACABADOS (AGORA COMO "MOLDES")
-INSERT INTO produtos (nome, sku, descricao, cor, unidades_por_produto, ativo, tipo_materia_prima_id, largura_unitaria, comprimento_unitario) VALUES
+INSERT INTO produtos (nome, sku, descricao, cor, unidades_por_produto, ativo, tipo_materia_prima_id, largura_cm_unitaria, comprimento_cm_unitario) VALUES
                                                                                                                                                  ('Etiqueta Redonda Kraft 5x5cm', 'ETQ-KFT-RD-50', 'Pacote com 100 etiquetas.', 'Pardo', 100, true, 1, 5.0, 5.0),
                                                                                                                                                  ('Etiqueta Retangular Vinil 9x5cm', 'ETQ-VNL-RT-95', 'Pacote com 100 etiquetas.', 'Branco', 100, true, 2, 9.0, 5.0);
 

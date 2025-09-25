@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * Classe embutível (@Embeddable) que representa as dimensões de um item.
@@ -20,10 +21,18 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class Dimensoes {
 
-    @Column(name = "largura_unitaria", precision = 10, scale = 2)
-    private BigDecimal largura;
+    @Column(name = "largura_cm_unitaria", precision = 10, scale = 2)
+    private BigDecimal larguraCm;
 
-    @Column(name = "comprimento_unitario", precision = 10, scale = 2)
-    private BigDecimal comprimento;
+    @Column(name = "comprimento_cm_unitario", precision = 10, scale = 2)
+    private BigDecimal comprimentoCm;
+
+    public BigDecimal getComprimentoM() {
+        return comprimentoCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal getAreaCm2() {
+        return larguraCm.multiply(comprimentoCm);
+    }
 }
 

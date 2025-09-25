@@ -12,4 +12,6 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface LoteMateriaPrimaRepository extends JpaRepository<LoteMateriaPrima, Long> {
+
+    boolean existsByTipoMateriaPrimaId(Long tipoId);
 }

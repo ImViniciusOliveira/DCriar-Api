@@ -68,7 +68,7 @@ public class Produto {
      */
     public static Produto from(ProdutoRequestDTO request) {
         Dimensoes dimensoes = request.getDimensoesUnitarias() != null
-                ? new Dimensoes(request.getDimensoesUnitarias().getLargura(), request.getDimensoesUnitarias().getComprimento())
+                ? new Dimensoes(request.getDimensoesUnitarias().getLarguraCm(), request.getDimensoesUnitarias().getComprimentoCm())
                 : null;
 
         return Produto.builder()
@@ -96,7 +96,7 @@ public class Produto {
         this.ativo = request.getAtivo() != null ? request.getAtivo() : this.ativo;
 
         if (request.getDimensoesUnitarias() != null) {
-            this.dimensoesUnitarias = new Dimensoes(request.getDimensoesUnitarias().getLargura(), request.getDimensoesUnitarias().getComprimento());
+            this.dimensoesUnitarias = new Dimensoes(request.getDimensoesUnitarias().getLarguraCm(), request.getDimensoesUnitarias().getComprimentoCm());
         }
     }
 }

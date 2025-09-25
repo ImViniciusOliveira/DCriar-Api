@@ -10,34 +10,33 @@ import java.math.BigDecimal;
 public class DimensoesRequestValidator implements ConstraintValidator<ValidDimensoesRequest, DimensoesRequestDTO> {
 
     @Override
-    public boolean isValid(DimensoesRequestDTO dto, ConstraintValidatorContext context) {
-        if (dto == null) return true;
+    public boolean isValid(DimensoesRequestDTO value, ConstraintValidatorContext context) {
+        if (value == null) {
+            return true;
+        }
+
+        BigDecimal largura = value.getLarguraCm();
+        BigDecimal comprimento = value.getComprimentoCm();
 
         boolean valid = true;
-        context.disableDefaultConstraintViolation();
 
-        // Validação da largura
-        if (dto.getLargura() == null) {
-            context.buildConstraintViolationWithTemplate("A largura é obrigatória.")
-                    .addPropertyNode("largura").addConstraintViolation();
-            valid = false;
-        } else if (dto.getLargura().compareTo(BigDecimal.ZERO) <= 0) {
-            context.buildConstraintViolationWithTemplate("A largura deve ser positiva.")
-                    .addPropertyNode("largura").addConstraintViolation();
+        if (largura == null || largura.compareTo(BigDecimal.ZERO) <= 0) {
+            addConstraintViolation(context, "A largura deve ser informada e maior que zero.");
             valid = false;
         }
 
-        // Validação do comprimento
-        if (dto.getComprimento() == null) {
-            context.buildConstraintViolationWithTemplate("O comprimento é obrigatório.")
-                    .addPropertyNode("comprimento").addConstraintViolation();
-            valid = false;
-        } else if (dto.getComprimento().compareTo(BigDecimal.ZERO) <= 0) {
-            context.buildConstraintViolationWithTemplate("O comprimento deve ser positivo.")
-                    .addPropertyNode("comprimento").addConstraintViolation();
+        if (comprimento == null || comprimento.compareTo(BigDecimal.ZERO) <= 0) {
+            addConstraintViolation(context, "O comprimento deve ser informado e maior que zero.");
             valid = false;
         }
 
         return valid;
+    }
+
+    private void addConstraintViolation(ConstraintValidatorContext context, String message) {
+        context.disableDefaultConstraintViolation();
+        context.buildConstraintViolationWithTemplate(message)
+                .addPropertyNode("dimensoes")
+                .addConstraintViolation();
     }
 }
