@@ -1,6 +1,8 @@
 package com.dcriar.domain.stock.repository;
 
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
+import com.dcriar.domain.stock.entity.TipoMateriaPrima;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,5 +15,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LoteMateriaPrimaRepository extends JpaRepository<LoteMateriaPrima, Long> {
 
-    boolean existsByTipoMateriaPrimaId(Long tipoId);
+    boolean existsByTipoMateriaPrima(TipoMateriaPrima tipo);
+
+    List<LoteMateriaPrima> findAllByTipoMateriaPrima(TipoMateriaPrima tipoMateriaPrima);
 }

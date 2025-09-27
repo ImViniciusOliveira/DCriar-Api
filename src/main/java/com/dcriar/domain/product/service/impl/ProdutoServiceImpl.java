@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -33,10 +34,10 @@ public class ProdutoServiceImpl implements ProdutoService {
 
     private final ProdutoRepository produtoRepository;
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
-    private final ProdutoMapper produtoMapper;
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
     private final EstoqueRepository estoqueRepository;
     private final OrdemDeCorteRepository ordemDeCorteRepository;
+    private final ProdutoMapper produtoMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -88,17 +89,21 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Override
     @Transactional
     public void deleteById(Long id) {
-        // Verifica se o produto existe, lança ProdutoNotFoundException se não existir
-        findProdutoById(id);
+        Produto produto = findProdutoById(id);
 
-        // Verifica se o produto está sendo usado em alguma ordem de corte
-        if (ordemDeCorteRepository.existsByProdutoId(id)) {
-            throw new ProdutoEmUsoException(id);
+        // Busca todas as ordens de corte que usam esse produto
+        List<com.dcriar.domain.production.entity.OrdemDeCorte> ordens = ordemDeCorteRepository.findAllByProduto(produto);
+        if (!ordens.isEmpty()) {
+            Set<Long> ordemIds = ordens.stream().map(com.dcriar.domain.production.entity.OrdemDeCorte::getId).collect(java.util.stream.Collectors.toSet());
+            throw new ProdutoEmUsoException(id, ordemIds);
         }
 
         // Pode deletar
-        produtoRepository.deleteById(id);
+        produtoRepository.delete(produto);
     }
+
+
+
 
 
     /* ============================

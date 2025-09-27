@@ -3,6 +3,7 @@ package com.dcriar.domain.stock.service.impl;
 import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
 import com.dcriar.api.mapper.stock.TipoMateriaPrimaMapper;
+import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -77,11 +79,11 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     public void deleteById(Long id) {
         TipoMateriaPrima tipo = findTipoById(id);
 
-        // Verifica se o tipo está em uso
-        if (loteMateriaPrimaRepository.existsByTipoMateriaPrimaId(tipo.getId())) {
-            throw new TipoMateriaPrimaEmUsoException(
-                    "O tipo de matéria-prima está em uso em um lote e não pode ser excluído."
-            );
+        // Busca todos os lotes que usam esse tipo de matéria-prima
+        List<LoteMateriaPrima> lotes = loteMateriaPrimaRepository.findAllByTipoMateriaPrima(tipo);
+        if (!lotes.isEmpty()) {
+            Set<Long> loteIds = lotes.stream().map(LoteMateriaPrima::getId).collect(Collectors.toSet());
+            throw new TipoMateriaPrimaEmUsoException(id, loteIds);
         }
 
         tipoMateriaPrimaRepository.delete(tipo);

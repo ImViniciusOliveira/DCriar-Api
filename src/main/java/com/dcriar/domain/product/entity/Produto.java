@@ -84,6 +84,7 @@ public class Produto {
     }
 
     /**
+
      * Atualiza os dados do produto a partir de um DTO.
      */
     public void updateFrom(ProdutoRequestDTO request) {
@@ -94,7 +95,6 @@ public class Produto {
         this.unidadesPorProduto = request.getUnidadesPorProduto();
         this.fotoPrincipalUrl = request.getFotoPrincipalUrl();
         this.ativo = request.getAtivo() != null ? request.getAtivo() : this.ativo;
-
         if (request.getDimensoesUnitarias() != null) {
             this.dimensoesUnitarias = new Dimensoes(request.getDimensoesUnitarias().getLarguraCm(), request.getDimensoesUnitarias().getComprimentoCm());
         }

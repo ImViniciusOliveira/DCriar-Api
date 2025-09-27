@@ -17,11 +17,16 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    // ============================
+    // Exceções de Domínio (O seu código original, mantido e aprimorado)
+    // ============================
 
     @ExceptionHandler(ProdutoNotFoundException.class)
     public ResponseEntity<ErrorDTO> handleProdutoNotFound(ProdutoNotFoundException ex) {
@@ -68,9 +73,28 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex, HttpStatus.CONFLICT, Map.of("nome", ex.getNome()));
     }
 
+    @ExceptionHandler(ProdutoEmUsoException.class)
+    public ResponseEntity<ErrorDTO> handleProdutoEmUso(ProdutoEmUsoException ex) {
+        return buildErrorResponse(
+            ex,
+            HttpStatus.CONFLICT,
+            Map.of(
+                "produtoId", String.valueOf(ex.getProdutoId()),
+                "ordemDeCorteIds", ex.getEntidadeIds().toString()
+            )
+        );
+    }
+
     @ExceptionHandler(TipoMateriaPrimaEmUsoException.class)
     public ResponseEntity<ErrorDTO> handleTipoMateriaPrimaEmUso(TipoMateriaPrimaEmUsoException ex) {
-        return buildErrorResponse(ex, HttpStatus.CONFLICT, Map.of("info", ex.getMessage()));
+        return buildErrorResponse(
+            ex,
+            HttpStatus.CONFLICT,
+            Map.of(
+                "tipoMateriaPrimaId", String.valueOf(ex.getTipoMateriaPrimaId()),
+                "loteIds", ex.getLoteIds().toString()
+            )
+        );
     }
 
     @ExceptionHandler(ProdutoInvalidoException.class)
@@ -81,12 +105,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ProdutoValidationException.class)
     public ResponseEntity<ErrorDTO> handleProdutoValidation(ProdutoValidationException ex) {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, ex.getErrors());
-    }
-
-    @ExceptionHandler(ProdutoEmUsoException.class)
-    public ResponseEntity<Map<String, String>> handleProdutoEmUso(ProdutoEmUsoException ex) {
-        Map<String, String> response = Map.of("erro", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(EstoqueInsuficienteParaMovimentacaoException.class)
@@ -109,74 +127,46 @@ public class GlobalExceptionHandler {
     }
 
     // ============================
-    // Exceções de validação
+    // Exceções de Validação e Spring
     // ============================
 
-    // ## MÉTODO CORRIGIDO ##
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorDTO> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-
         ex.getBindingResult().getFieldErrors().forEach(error ->
                 errors.put(error.getField(), error.getDefaultMessage())
         );
-
         ex.getBindingResult().getGlobalErrors().forEach(error ->
                 errors.put(error.getObjectName(), error.getDefaultMessage())
         );
-
         return buildErrorResponse("Erros de validação encontrados", HttpStatus.BAD_REQUEST, errors);
-    }
-
-    @ExceptionHandler(MultiValidationException.class)
-    public ResponseEntity<ErrorDTO> handleMultiValidation(MultiValidationException ex) {
-        return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST, ex.getErrors());
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorDTO> handleMalformedJson(HttpMessageNotReadableException ex) {
         String msg = "JSON malformado ou sintaxe inválida na requisição.";
         String detalhe;
-
         if (ex.getMostSpecificCause() instanceof InvalidFormatException invalidFormat) {
-            Object[] constants = invalidFormat.getTargetType().getEnumConstants();
-            String tipos;
-            if (invalidFormat.getTargetType().isEnum() && constants != null) {
-                tipos = java.util.Arrays.stream(constants)
-                        .map(Object::toString)
-                        .collect(Collectors.joining(", "));
-            } else {
-                tipos = invalidFormat.getTargetType().getSimpleName();
-            }
-
             String campo = invalidFormat.getPath().stream()
                     .map(JsonMappingException.Reference::getFieldName)
                     .collect(Collectors.joining("."));
             String valor = String.valueOf(invalidFormat.getValue());
-            detalhe = "Campo '" + campo + "' recebeu valor inválido: " + valor + ". Tipo esperado: " + tipos;
+            detalhe = String.format("Campo '%s' recebeu valor inválido: '%s'.", campo, valor);
         } else {
-            ex.getMostSpecificCause();
             detalhe = ex.getMostSpecificCause().getMessage();
         }
-
         Map<String, String> details = Map.of("erro", detalhe);
         log.warn("JSON inválido: {}", detalhe);
-
         return buildErrorResponse(msg, HttpStatus.BAD_REQUEST, details);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorDTO> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
         String msg = "Método HTTP não permitido: " + ex.getMethod();
-
-        String metodosPermitidos = "";
-        if (ex.getSupportedHttpMethods() != null) {
-            metodosPermitidos = ex.getSupportedHttpMethods().stream()
-                    .map(HttpMethod::name)
-                    .collect(Collectors.joining(", "));
-        }
-
-        Map<String, String> details = Map.of("métodosPermitidos", metodosPermitidos);
+        String metodosPermitidos = Objects.requireNonNull(ex.getSupportedHttpMethods()).stream()
+                .map(HttpMethod::name)
+                .collect(Collectors.joining(", "));
+        Map<String, String> details = Map.of("metodosPermitidos", metodosPermitidos);
         return buildErrorResponse(msg, HttpStatus.METHOD_NOT_ALLOWED, details);
     }
 
@@ -184,9 +174,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorDTO> handleGenericException(Exception ex) {
         log.error("Erro inesperado:", ex);
         String msg = "Ocorreu um erro inesperado. Tente novamente mais tarde.";
-        Map<String, String> details = Map.of("exception", ex.getClass().getSimpleName());
-        return buildErrorResponse(msg, HttpStatus.INTERNAL_SERVER_ERROR, details);
+        return buildErrorResponse(msg, HttpStatus.INTERNAL_SERVER_ERROR, Map.of("exception", ex.getClass().getSimpleName()));
     }
+
+    // ============================
+    // Métodos auxiliares
+    // ============================
 
     private ResponseEntity<ErrorDTO> buildErrorResponse(String message, HttpStatus status, Map<String, String> details) {
         ErrorDTO dto = new ErrorDTO(

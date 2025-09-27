@@ -25,8 +25,8 @@ CREATE TABLE ordens_de_corte (
                                  quantidade_produzida INT NOT NULL,
                                  modo_calculo VARCHAR(50) NOT NULL,
     -- Dimensões Finais (seja calculado ou manual)
-                                 largura_final_cm NUMERIC(10, 2) NOT NULL,
-                                 comprimento_final_cm NUMERIC(10, 2) NOT NULL,
+                                 largura_final_cm DOUBLE PRECISION NOT NULL,
+                                 comprimento_final_cm DOUBLE PRECISION NOT NULL,
     -- Campos de auditoria
                                  data_criacao TIMESTAMP WITH TIME ZONE NOT NULL,
                                  motivo VARCHAR(255),
@@ -34,4 +34,3 @@ CREATE TABLE ordens_de_corte (
                                  CONSTRAINT fk_ordem_produto FOREIGN KEY (produto_id) REFERENCES produtos(id),
                                  CONSTRAINT fk_ordem_lote FOREIGN KEY (lote_principal_id) REFERENCES lotes_materia_prima(id)
 );
-

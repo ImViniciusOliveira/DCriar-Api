@@ -9,7 +9,7 @@ import org.mapstruct.MappingConstants;
 /**
  * Interface MapStruct para mapear a entidade {@link Produto} para seu DTO de resposta.
  */
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = DimensoesMapper.class)
 public interface ProdutoMapper {
 
     /**
@@ -18,6 +18,6 @@ public interface ProdutoMapper {
     @Mapping(target = "estoqueFisicoTotal", ignore = true)
     @Mapping(target = "estoqueDistribuidoTotal", ignore = true)
     @Mapping(target = "estoqueDisponivelParaAlocar", ignore = true)
+    @Mapping(source = "dimensoesUnitarias", target = "dimensoes")
     ProdutoResponseDTO toResponseDTO(Produto produto);
 }
-

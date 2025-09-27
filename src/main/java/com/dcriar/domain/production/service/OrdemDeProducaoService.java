@@ -1,6 +1,7 @@
 package com.dcriar.domain.production.service;
 
 import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
+import com.dcriar.api.dto.response.production.OrdemDeCorteResponseDTO;
 
 /**
  * Interface que define o contrato para a lógica de negócio de Ordens de Produção.
@@ -16,6 +17,13 @@ public interface OrdemDeProducaoService {
      * entrada do produto acabado no estoque mestre e no estoque do canal de destino.
      *
      * @param requestDTO O DTO com os detalhes completos da ordem de corte.
+     * @return OrdemDeCorteResponseDTO com os dados necessários para o front.
      */
-    void processarOrdemDeCorte(OrdemDeCorteRequestDTO requestDTO);
+    OrdemDeCorteResponseDTO processarOrdemDeCorte(OrdemDeCorteRequestDTO requestDTO);
+
+    /**
+     * Exclui uma ordem de corte pelo id.
+     * @param id O id da ordem de corte a ser excluída.
+     */
+    void excluirOrdemDeCorte(Long id);
 }

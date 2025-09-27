@@ -42,4 +42,7 @@ public class ProdutoResponseDTO {
 
     @Schema(description = "Saldo de unidades disponíveis para alocação em canais de venda.", example = "50")
     private Integer estoqueDisponivelParaAlocar;
+
+    @Schema(description = "Dimensões unitárias do produto.")
+    private DimensoesResponseDTO dimensoes;
 }
