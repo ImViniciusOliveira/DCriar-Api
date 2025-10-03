@@ -1,4 +1,4 @@
-package com.dcriar.api.model;
+package com.dcriar.api.hateous.model;
 
 import com.dcriar.api.dto.response.product.DimensoesResponseDTO;
 import com.fasterxml.jackson.annotation.JsonInclude;

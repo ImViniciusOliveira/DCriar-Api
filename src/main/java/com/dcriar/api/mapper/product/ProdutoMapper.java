@@ -1,7 +1,7 @@
 package com.dcriar.api.mapper.product;
 
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
-import com.dcriar.api.model.ProdutoModel;
+import com.dcriar.api.hateous.model.ProdutoModel;
 import com.dcriar.domain.product.entity.Produto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

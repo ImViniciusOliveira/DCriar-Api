@@ -1,9 +1,10 @@
-package com.dcriar.api.assembler;
+package com.dcriar.api.hateous.assembler;
 
+import com.dcriar.api.controller.product.EstoqueProdutoController; // Importar para links de estoque
 import com.dcriar.api.controller.product.ProdutoController;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
-import com.dcriar.api.model.ProdutoModel;
+import com.dcriar.api.hateous.model.ProdutoModel;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,15 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
         // 2. Adiciona os links HATEOAS.
         model.add(linkTo(methodOn(ProdutoController.class).findById(dto.getId())).withSelfRel());
         model.add(linkTo(methodOn(ProdutoController.class).findAll()).withRel("produtos"));
+
+        // Links para recursos relacionados ao produto
+        model.add(linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorProduto(dto.getId())).withRel("estoques-do-produto"));
+        model.add(linkTo(methodOn(EstoqueProdutoController.class).listarMovimentacoesPorProduto(dto.getId())).withRel("historico-movimentacoes"));
+
+        // Links para ações sobre o produto
+        model.add(linkTo(methodOn(ProdutoController.class).update(dto.getId(), null)).withRel("atualizar-produto"));
+        model.add(linkTo(methodOn(ProdutoController.class).deleteById(dto.getId())).withRel("deletar-produto"));
+
 
         return model;
     }

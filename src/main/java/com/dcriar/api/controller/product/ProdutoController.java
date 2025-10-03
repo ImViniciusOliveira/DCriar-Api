@@ -1,9 +1,9 @@
 package com.dcriar.api.controller.product;
 
-import com.dcriar.api.assembler.ProdutoModelAssembler;
+import com.dcriar.api.hateous.assembler.ProdutoModelAssembler;
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
-import com.dcriar.api.model.ProdutoModel;
+import com.dcriar.api.hateous.model.ProdutoModel;
 import com.dcriar.domain.product.service.ProdutoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;

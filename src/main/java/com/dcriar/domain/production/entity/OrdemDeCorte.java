@@ -47,6 +47,12 @@ public class OrdemDeCorte {
     private Long lotePrincipalId;
 
     /**
+     * O ID do canal de venda para o qual o estoque será destinado.
+     */
+    @Column(name = "canal_venda_destino_id")
+    private Long canalVendaDestinoId;
+
+    /**
      * A quantidade de unidades do produto final que foram produzidas com sucesso.
      */
     @Column(name = "quantidade_produzida", nullable = false)

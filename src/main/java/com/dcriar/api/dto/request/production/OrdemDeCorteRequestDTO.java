@@ -53,7 +53,7 @@ public class OrdemDeCorteRequestDTO {
      * <b>AUTOMATICO:</b> O sistema calcula o consumo com base nas dimensões do produto e nas margens fornecidas.
      * <b>MANUAL:</b> O usuário informa o tamanho final exato do corte.
      */
-    @Schema(description = "Define o modo de cálculo para o consumo de matéria-prima.", example = "AUTOMÁTICO", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Define o modo de cálculo para o consumo de matéria-prima.", example = "AUTOMATICO", requiredMode = Schema.RequiredMode.REQUIRED)
     private ModoCalculo modoCalculo;
 
     /**
@@ -62,7 +62,7 @@ public class OrdemDeCorteRequestDTO {
      * Este campo é obrigatório apenas quando o {@code modoCalculo} é 'AUTOMATICO'.
      */
     @Valid
-    @Schema(description = "As margens a serem adicionadas ao corte. Obrigatório apenas quando o modoCalculo é 'AUTOMÁTICO'.")
+    @Schema(description = "As margens a serem adicionadas ao corte. Obrigatório apenas quando o modoCalculo é 'AUTOMATICO'.")
     private MargensRequestDTO margens;
 
     /**
