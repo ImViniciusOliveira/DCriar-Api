@@ -49,7 +49,7 @@ public class TipoMateriaPrimaController {
         TipoMateriaPrimaResponseDTO tipoCriado = tipoMateriaPrimaService.create(requestDTO);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(tipoCriado.id())
+                .buildAndExpand(tipoCriado.getId())
                 .toUri();
         return ResponseEntity.created(location).body(tipoCriado);
     }

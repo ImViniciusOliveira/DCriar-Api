@@ -15,7 +15,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LoteMateriaPrimaRepository extends JpaRepository<LoteMateriaPrima, Long> {
 
-    boolean existsByTipoMateriaPrima(TipoMateriaPrima tipo);
-
     List<LoteMateriaPrima> findAllByTipoMateriaPrima(TipoMateriaPrima tipoMateriaPrima);
 }

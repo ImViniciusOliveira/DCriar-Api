@@ -22,24 +22,42 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(of = "id")
 public class Preco {
 
+    /**
+     * O ID único do preço.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * O produto ao qual este preço está associado.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "produto_id", nullable = false)
     private Produto produto;
 
+    /**
+     * O tipo de preço (ex: VAREJO, ATACADO).
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_preco", nullable = false, length = 50)
     private TipoPreco tipoPreco;
 
+    /**
+     * O valor base do preço do produto.
+     */
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal valor;
 
+    /**
+     * O valor promocional do produto, se houver uma promoção ativa.
+     */
     @Column(name = "valor_promocional", precision = 19, scale = 2)
     private BigDecimal valorPromocional;
 
+    /**
+     * Indica se a promoção para este preço está ativa.
+     */
     @Column(name = "promocao_ativa", nullable = false)
     private boolean promocaoAtiva;
 }

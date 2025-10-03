@@ -19,18 +19,30 @@ import lombok.*;
 @EqualsAndHashCode(of = "id")
 public class Estoque {
 
+    /**
+     * O ID único do registro de estoque.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * O produto associado a este registro de estoque.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "produto_id", nullable = false)
     private Produto produto;
 
+    /**
+     * O canal de venda onde este estoque está alocado.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "canal_venda_id", nullable = false)
     private CanalVenda canalVenda;
 
+    /**
+     * A quantidade de unidades do produto disponíveis neste canal de venda.
+     */
     @Column(nullable = false)
     private Integer quantidade;
 }

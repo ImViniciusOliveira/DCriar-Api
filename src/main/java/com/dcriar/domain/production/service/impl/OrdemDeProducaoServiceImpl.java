@@ -32,7 +32,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
@@ -69,7 +68,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         // 3. Cálculo do consumo e cortes realizados
         ParametrosCorte parametros = extrairParametrosCorte(requestDTO, lotePrincipal, produto);
         ArrayList<CorteRealizadoDTO> cortesRealizados = gerarCortesRealizados(
-            parametros.quantidade(), parametros.produtosPorLinha(), parametros.linhas(), parametros.larguraProduto(), parametros.comprimentoProduto(), parametros.larguraTotalLoteCm(), parametros.margemEsquerda(), parametros.margemDireita(), lotePrincipal
+            parametros.getQuantidade(), parametros.getProdutosPorLinha(), parametros.getLinhas(), parametros.getLarguraProduto(), parametros.getComprimentoProduto(), parametros.getLarguraTotalLoteCm(), parametros.getMargemEsquerda(), parametros.getMargemDireita(), lotePrincipal
         );
         BigDecimal consumoTotalMetros = calcularConsumoTotalMetros(cortesRealizados);
 
@@ -78,10 +77,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .produto(produto)
                 .lotePrincipalId(requestDTO.getLotePrincipalId())
                 .quantidadeProduzida(requestDTO.getQuantidadeProduzida())
-                .modoCalculo(requestDTO.getModoCalculo() != null ? requestDTO.getModoCalculo().name() : "AUTOMATICO")
-                .larguraFinalCm(dimensoesFinais.getLarguraCm().doubleValue())
-                .comprimentoFinalCm(dimensoesFinais.getComprimentoCm().doubleValue())
-                .dataCriacao(LocalDateTime.now())
+                .modoCalculo(requestDTO.getModoCalculo() != null ? requestDTO.getModoCalculo() : ModoCalculo.AUTOMATICO)
+                .larguraFinalCm(dimensoesFinais.getLarguraCm())
+                .comprimentoFinalCm(dimensoesFinais.getComprimentoCm())
+                .dataCriacao(java.time.OffsetDateTime.now())
                 .motivo(requestDTO.getMotivo())
                 .build();
         ordemDeCorteRepository.save(ordem);
@@ -98,8 +97,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         // Monta o DTO de resposta
         MargensRequestDTO margensDTO = requestDTO.getMargens();
         TamanhoFinalResponseDTO tamanhoFinalDTO = TamanhoFinalResponseDTO.builder()
-                .larguraCm(dimensoesFinais.getLarguraCm().doubleValue())
-                .comprimentoCm(dimensoesFinais.getComprimentoCm().doubleValue())
+                .larguraCm(dimensoesFinais.getLarguraCm())
+                .comprimentoCm(dimensoesFinais.getComprimentoCm())
                 .build();
 
         return OrdemDeCorteResponseDTO.builder()
@@ -109,7 +108,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .canalVendaDestinoId(requestDTO.getCanalVendaDestinoId())
                 .quantidadeProduzida(requestDTO.getQuantidadeProduzida())
                 .motivo(requestDTO.getMotivo())
-                .modoCalculo(ordem.getModoCalculo())
+                .modoCalculo(ordem.getModoCalculo().name())
                 .margens(margensDTO)
                 .tamanhoFinal(tamanhoFinalDTO)
                 .cortesRealizados(cortesRealizados)
@@ -235,8 +234,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
         LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLotePrincipalId());
         ParametrosCorte parametros = extrairParametrosCorte(requestDTO, lotePrincipal, produto);
-        BigDecimal comprimentoFinal = calcularComprimentoFinal(parametros.comprimentoProduto(), parametros.linhas(), requestDTO.getMargens());
-        return new Dimensoes(parametros.larguraTotalLoteCm(), comprimentoFinal);
+        BigDecimal comprimentoFinal = calcularComprimentoFinal(parametros.getComprimentoProduto(), parametros.getLinhas(), requestDTO.getMargens());
+        return new Dimensoes(parametros.getLarguraTotalLoteCm(), comprimentoFinal);
     }
 
     private void validarOrdemDeCorte(LoteMateriaPrima lote, Dimensoes dimensoesFinais) {

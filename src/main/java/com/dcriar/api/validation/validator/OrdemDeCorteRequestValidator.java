@@ -1,46 +1,36 @@
 package com.dcriar.api.validation.validator;
 
 import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
-import com.dcriar.api.dto.request.product.DimensoesRequestDTO;
-import com.dcriar.api.dto.request.production.MargensRequestDTO;
 import com.dcriar.api.validation.annotation.ValidOrdemDeCorteRequest;
 import com.dcriar.domain.production.enums.ModoCalculo;
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorContext;
 
-public class OrdemDeCorteRequestValidator implements ConstraintValidator<ValidOrdemDeCorteRequest, OrdemDeCorteRequestDTO> {
+/**
+ * Validador para o DTO {@link OrdemDeCorteRequestDTO}, acionado pela anotação {@link ValidOrdemDeCorteRequest}.
+ * <p>
+ * Este validador verifica as regras de negócio para uma ordem de corte:
+ * <ul>
+ *     <li>Campos básicos como {@code lotePrincipalId}, {@code produtoId}, {@code quantidadeProduzida},
+ *     {@code canalVendaDestinoId} e {@code modoCalculo} são obrigatórios.</li>
+ *     <li>A {@code quantidadeProduzida} deve ser um número positivo.</li>
+ *     <li>Se o {@code modoCalculo} for AUTOMATICO, o campo {@code margens} é obrigatório.</li>
+ *     <li>Se o {@code modoCalculo} for MANUAL, o campo {@code tamanhoFinal} é obrigatório.</li>
+ * </ul>
+ */
+public class OrdemDeCorteRequestValidator extends BaseValidator<ValidOrdemDeCorteRequest, OrdemDeCorteRequestDTO> {
 
     @Override
-    public boolean isValid(OrdemDeCorteRequestDTO value, ConstraintValidatorContext context) {
-        if (value == null) {
-            return true;
+    protected void validate(OrdemDeCorteRequestDTO dto) {
+        addViolationIf(dto.getLotePrincipalId() == null, "O ID do lote principal é obrigatório.", "lotePrincipalId");
+        addViolationIf(dto.getProdutoId() == null, "O ID do produto é obrigatório.", "produtoId");
+        addViolationIf(dto.getCanalVendaDestinoId() == null, "O ID do canal de venda de destino é obrigatório.", "canalVendaDestinoId");
+        addViolationIf(dto.getQuantidadeProduzida() == null || dto.getQuantidadeProduzida() <= 0, "A quantidade produzida deve ser um número positivo.", "quantidadeProduzida");
+
+        ModoCalculo modoCalculo = dto.getModoCalculo();
+        addViolationIf(modoCalculo == null, "O modo de cálculo é obrigatório.", "modoCalculo");
+
+        if (modoCalculo != null) {
+            addViolationIf(modoCalculo == ModoCalculo.AUTOMATICO && dto.getMargens() == null, "O campo 'margens' é obrigatório para o modo de cálculo AUTOMATICO.", "margens");
+            addViolationIf(modoCalculo == ModoCalculo.MANUAL && dto.getTamanhoFinal() == null, "O campo 'tamanhoFinal' é obrigatório para o modo de cálculo MANUAL.", "tamanhoFinal");
         }
-
-        boolean valid = true;
-
-        if (value.getModoCalculo() == ModoCalculo.AUTOMATICO) {
-            MargensRequestDTO margens = value.getMargens();
-            if (margens == null) {
-                addConstraintViolation(context, "As margens devem ser informadas no modo AUTOMATICO.", "margens");
-                valid = false;
-            }
-        }
-
-        if (value.getModoCalculo() == ModoCalculo.MANUAL) {
-            DimensoesRequestDTO dimensoes = value.getTamanhoFinal();
-            if (dimensoes == null) {
-                addConstraintViolation(context, "As dimensões finais devem ser informadas no modo MANUAL.", "tamanhoFinal");
-                valid = false;
-            }
-        }
-
-        return valid;
-    }
-
-    private void addConstraintViolation(ConstraintValidatorContext context, String message, String propertyNode) {
-        context.disableDefaultConstraintViolation();
-        context.buildConstraintViolationWithTemplate(message)
-                .addPropertyNode(propertyNode)
-                .addConstraintViolation();
     }
 }

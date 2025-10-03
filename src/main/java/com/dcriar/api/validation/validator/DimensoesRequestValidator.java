@@ -2,41 +2,23 @@ package com.dcriar.api.validation.validator;
 
 import com.dcriar.api.dto.request.product.DimensoesRequestDTO;
 import com.dcriar.api.validation.annotation.ValidDimensoesRequest;
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorContext;
 
 import java.math.BigDecimal;
 
-public class DimensoesRequestValidator implements ConstraintValidator<ValidDimensoesRequest, DimensoesRequestDTO> {
+/**
+ * Validador para o DTO {@link DimensoesRequestDTO}, acionado pela anotação {@link ValidDimensoesRequest}.
+ * <p>
+ * Este validador verifica se, caso o objeto não seja nulo, seus campos de dimensão são válidos:
+ * <ul>
+ *     <li>O {@code larguraCm} não pode ser nulo e deve ser um valor positivo.</li>
+ *     <li>O {@code comprimentoCm} não pode ser nulo e deve ser um valor positivo.</li>
+ * </ul>
+ */
+public class DimensoesRequestValidator extends BaseValidator<ValidDimensoesRequest, DimensoesRequestDTO> {
 
     @Override
-    public boolean isValid(DimensoesRequestDTO value, ConstraintValidatorContext context) {
-        if (value == null) {
-            return true;
-        }
-
-        BigDecimal largura = value.getLarguraCm();
-        BigDecimal comprimento = value.getComprimentoCm();
-
-        boolean valid = true;
-
-        if (largura == null || largura.compareTo(BigDecimal.ZERO) <= 0) {
-            addConstraintViolation(context, "A largura deve ser informada e maior que zero.");
-            valid = false;
-        }
-
-        if (comprimento == null || comprimento.compareTo(BigDecimal.ZERO) <= 0) {
-            addConstraintViolation(context, "O comprimento deve ser informado e maior que zero.");
-            valid = false;
-        }
-
-        return valid;
-    }
-
-    private void addConstraintViolation(ConstraintValidatorContext context, String message) {
-        context.disableDefaultConstraintViolation();
-        context.buildConstraintViolationWithTemplate(message)
-                .addPropertyNode("dimensoes")
-                .addConstraintViolation();
+    protected void validate(DimensoesRequestDTO dto) {
+        addViolationIf(dto.getLarguraCm() == null || dto.getLarguraCm().compareTo(BigDecimal.ZERO) <= 0, "A largura deve ser um número positivo.", "larguraCm");
+        addViolationIf(dto.getComprimentoCm() == null || dto.getComprimentoCm().compareTo(BigDecimal.ZERO) <= 0, "O comprimento deve ser um número positivo.", "comprimentoCm");
     }
 }

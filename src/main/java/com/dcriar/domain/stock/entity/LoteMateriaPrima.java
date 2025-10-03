@@ -28,20 +28,31 @@ import java.util.Map;
 @EqualsAndHashCode(of = "id")
 public class LoteMateriaPrima {
 
+    /**
+     * O ID único do lote de matéria-prima.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * O tipo de matéria-prima a que este lote pertence.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_materia_prima_id", nullable = false)
     private TipoMateriaPrima tipoMateriaPrima;
 
+    /**
+     * A unidade de medida em que este lote é armazenado e medido fisicamente.
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "unidade_de_estoque", nullable = false, length = 30)
     private UnidadeDeMedida unidadeDeEstoque;
 
     /**
      * Campo JSONB para armazenar atributos flexíveis do lote, como 'larguraMm' para rolos.
+     * <p>
+     * Permite adicionar informações específicas do lote sem a necessidade de alterar o esquema do banco de dados.
      */
     @Type(JsonBinaryType.class)
     @Column(columnDefinition = "jsonb")
@@ -49,8 +60,10 @@ public class LoteMateriaPrima {
 
     /**
      * O histórico de movimentações deste lote.
+     * <p>
      * Usamos LAZY fetch para otimizar a performance, garantindo que o histórico
      * só seja carregado do banco de dados quando for explicitamente necessário.
+     * {@code CascadeType.ALL} e {@code orphanRemoval = true} garantem a integridade referencial.
      */
     @OneToMany(mappedBy = "lote", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
@@ -58,7 +71,8 @@ public class LoteMateriaPrima {
 
     /**
      * Relação opcional que liga um lote de sobra (retalho) ao seu lote de origem.
-     * Essencial para a rastreabilidade da produção.
+     * <p>
+     * Essencial para a rastreabilidade da produção. Será nulo para lotes principais (entradas por compra).
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lote_de_origem_id")
@@ -66,10 +80,10 @@ public class LoteMateriaPrima {
 
     /**
      * Campo transiente para expor o saldo calculado.
+     * <p>
      * Este valor é calculado sob demanda pelo serviço a partir das movimentações.
-     * A anotação @Transient impede que o JPA tente criar uma coluna para ele no banco.
+     * A anotação {@code @Transient} impede que o JPA tente criar uma coluna para ele no banco.
      */
     @Transient
     private BigDecimal saldoCalculado;
 }
-

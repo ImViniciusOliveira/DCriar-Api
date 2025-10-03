@@ -8,7 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.OffsetDateTime;
 
 /**
- * Entidade que representa um único registo no "Livro-Razão" do estoque de produtos acabados.
+ * Entidade que representa um único registro no "Livro-Razão" do estoque de produtos acabados.
  * <p>
  * Cada instância desta classe é um evento imutável que descreve uma mudança
  * na quantidade de um Produto específico. A soma de todas as
@@ -24,18 +24,31 @@ import java.time.OffsetDateTime;
 @EqualsAndHashCode(of = "id")
 public class MovimentacaoEstoqueProduto {
 
+    /**
+     * O ID único da movimentação de estoque do produto.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * O produto ao qual esta movimentação está associada.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "produto_id", nullable = false)
     private Produto produto;
 
+    /**
+     * A data e hora em que a movimentação foi registrada.
+     * Gerado automaticamente no momento da criação.
+     */
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private OffsetDateTime data;
 
+    /**
+     * O tipo da movimentação (ex: ENTRADA_PRODUCAO, SAIDA_VENDA).
+     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private TipoMovimentacaoProduto tipo;
@@ -46,6 +59,9 @@ public class MovimentacaoEstoqueProduto {
     @Column(nullable = false)
     private Integer quantidade;
 
+    /**
+     * O motivo ou observação registrado para a movimentação.
+     */
     @Column(length = 254)
     private String motivo;
 }

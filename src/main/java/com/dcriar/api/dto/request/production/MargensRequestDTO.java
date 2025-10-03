@@ -6,6 +6,15 @@ import lombok.*;
 
 import java.math.BigDecimal;
 
+/**
+ * Data Transfer Object (DTO) para encapsular as margens de segurança de um corte.
+ * <p>
+ * Este DTO é um componente reutilizável, embutido em {@link OrdemDeCorteRequestDTO},
+ * e é obrigatório quando o modo de cálculo da ordem é 'AUTOMATICO'. As margens
+ * (sangria) são adicionadas às dimensões do produto para determinar o tamanho
+ * final do corte, garantindo que não haja bordas brancas indesejadas.
+ * A validação dos campos é garantida pela anotação {@link ValidMargensRequest}.
+ */
 @Getter
 @Setter
 @Builder
@@ -14,15 +23,27 @@ import java.math.BigDecimal;
 @ValidMargensRequest
 public class MargensRequestDTO {
 
-    @Schema(description = "Margem superior adicionada ao corte, em centímetros.", example = "2.0")
+    /**
+     * A margem superior a ser adicionada ao corte, em centímetros.
+     */
+    @Schema(description = "Margem superior a ser adicionada ao corte, em centímetros.", example = "2.0", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal superior;
 
-    @Schema(description = "Margem inferior adicionada ao corte, em centímetros.", example = "2.0")
+    /**
+     * A margem inferior a ser adicionada ao corte, em centímetros.
+     */
+    @Schema(description = "Margem inferior a ser adicionada ao corte, em centímetros.", example = "2.0", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal inferior;
 
-    @Schema(description = "Margem esquerda adicionada ao corte, em centímetros.", example = "1.5")
+    /**
+     * A margem esquerda a ser adicionada ao corte, em centímetros.
+     */
+    @Schema(description = "Margem esquerda a ser adicionada ao corte, em centímetros.", example = "1.5", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal esquerda;
 
-    @Schema(description = "Margem direita adicionada ao corte, em centímetros.", example = "1.5")
+    /**
+     * A margem direita a ser adicionada ao corte, em centímetros.
+     */
+    @Schema(description = "Margem direita a ser adicionada ao corte, em centímetros.", example = "1.5", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal direita;
 }

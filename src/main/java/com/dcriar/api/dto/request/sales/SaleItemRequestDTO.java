@@ -4,6 +4,13 @@ import com.dcriar.api.validation.annotation.ValidSaleItemRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+/**
+ * Data Transfer Object (DTO) para receber os dados de um item de linha em uma Venda.
+ * <p>
+ * Cada objeto deste DTO corresponde a um produto e sua respectiva quantidade
+ * dentro da lista de itens de uma {@link SaleRequestDTO}. A validação dos campos
+ * é garantida pela anotação {@link ValidSaleItemRequest}.
+ */
 @Getter
 @Setter
 @Builder
@@ -12,9 +19,15 @@ import lombok.*;
 @ValidSaleItemRequest
 public class SaleItemRequestDTO {
 
-    @Schema(description = "O ID do produto que está a ser vendido.", example = "1")
+    /**
+     * O ID do produto que está sendo vendido.
+     */
+    @Schema(description = "O ID do produto que está sendo vendido.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
-    @Schema(description = "A quantidade de unidades do produto vendidas.", example = "2")
-    private Integer quantity;
+    /**
+     * A quantidade de unidades do produto vendidas.
+     */
+    @Schema(description = "A quantidade de unidades do produto vendidas.", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
+    private Integer quantidade;
 }

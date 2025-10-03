@@ -1,11 +1,20 @@
 package com.dcriar.domain.production.entity;
 
 import com.dcriar.domain.product.entity.Produto;
+import com.dcriar.domain.production.enums.ModoCalculo;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 
+/**
+ * Representa uma Ordem de Corte no sistema, detalhando a produção de um produto a partir de matéria-prima.
+ * <p>
+ * Esta entidade registra qual produto foi produzido, a partir de qual lote de matéria-prima,
+ * a quantidade produzida, o modo de cálculo utilizado e as dimensões finais do corte.
+ */
 @Entity
 @Getter
 @Setter
@@ -17,32 +26,61 @@ import java.time.LocalDateTime;
 @Table(name = "ordens_de_corte")
 public class OrdemDeCorte {
 
+    /**
+     * O ID único da ordem de corte.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * O produto final que está sendo fabricado por esta ordem de corte.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "produto_id", nullable = false)
     private Produto produto;
 
+    /**
+     * O ID do lote de matéria-prima principal de onde o material foi consumido.
+     */
     @Column(name = "lote_principal_id", nullable = false)
     private Long lotePrincipalId;
 
+    /**
+     * A quantidade de unidades do produto final que foram produzidas com sucesso.
+     */
     @Column(name = "quantidade_produzida", nullable = false)
     private Integer quantidadeProduzida;
 
-    @Column(name = "modo_calculo", nullable = false)
-    private String modoCalculo;
+    /**
+     * O modo de cálculo utilizado para esta ordem de corte (AUTOMATICO ou MANUAL).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "modo_calculo", nullable = false, length = 20)
+    private ModoCalculo modoCalculo;
 
-    @Column(name = "largura_final_cm", nullable = false)
-    private Double larguraFinalCm;
+    /**
+     * A largura final do corte em centímetros.
+     */
+    @Column(name = "largura_final_cm", nullable = false, precision = 10, scale = 2)
+    private BigDecimal larguraFinalCm;
 
-    @Column(name = "comprimento_final_cm", nullable = false)
-    private Double comprimentoFinalCm;
+    /**
+     * O comprimento final do corte em centímetros.
+     */
+    @Column(name = "comprimento_final_cm", nullable = false, precision = 10, scale = 2)
+    private BigDecimal comprimentoFinalCm;
 
-    @Column(name = "data_criacao", nullable = false)
-    private LocalDateTime dataCriacao;
+    /**
+     * A data e hora em que a ordem de corte foi criada. Gerado automaticamente no momento da criação.
+     */
+    @CreationTimestamp
+    @Column(name = "data_criacao", nullable = false, updatable = false)
+    private OffsetDateTime dataCriacao;
 
+    /**
+     * Um motivo, observação ou referência para a ordem de produção (ex: número do pedido do cliente).
+     */
     @Column(name = "motivo")
     private String motivo;
 }

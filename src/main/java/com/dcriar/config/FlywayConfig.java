@@ -32,7 +32,7 @@ public class FlywayConfig {
         return flyway -> {
             // 1. Limpa completamente o banco de dados (equivalente a um DROP em todas as tabelas, sequences, etc.)
             flyway.clean();
-            // 2. Executa as migrações do zero (V1__, R__), recriando tudo.
+            // 2. Executa as migrações do zero (R__, V1__, etc.), recriando tudo.
             flyway.migrate();
         };
     }

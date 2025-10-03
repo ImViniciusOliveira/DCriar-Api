@@ -1,42 +1,55 @@
 package com.dcriar.api.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.*;
 
 import java.time.Instant;
 import java.util.Map;
 
 /**
- * DTO padronizado para respostas de erro da API DCriar.
- * Contém informações estruturadas para facilitar consumo por clientes da API.
+ * Data Transfer Object (DTO) padronizado para respostas de erro da API.
+ * <p>
+ * Este DTO fornece uma estrutura consistente para comunicar erros aos clientes da API,
+ * incluindo um timestamp, o status HTTP, uma mensagem de erro e detalhes adicionais,
+ * como erros de validação de campos.
  */
-@Data
+@Getter
+@Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ErrorDTO {
 
-    /** Timestamp do momento em que o erro ocorreu */
+    /**
+     * O momento em que o erro ocorreu, em UTC.
+     */
+    @Schema(description = "O momento em que o erro ocorreu, em UTC.", example = "2023-10-27T10:00:00Z")
     private Instant timestamp;
 
-    /** Código HTTP do erro */
+    /**
+     * O código de status HTTP.
+     */
+    @Schema(description = "O código de status HTTP.", example = "400")
     private int status;
 
-    /** Descrição do status HTTP (ex: "Not Found", "Bad Request") */
+    /**
+     * A descrição textual do status HTTP (ex: "Bad Request").
+     */
+    @Schema(description = "A descrição textual do status HTTP.", example = "Bad Request")
     private String error;
 
-    /** Mensagem amigável para o usuário ou cliente */
+    /**
+     * Uma mensagem clara e concisa descrevendo o erro.
+     */
+    @Schema(description = "Uma mensagem clara e concisa descrevendo o erro.", example = "Ocorreu um erro de validação.")
     private String message;
 
-    /** Detalhes opcionais, como erros de validação ou múltiplos erros de negócio */
+    /**
+     * Um mapa opcional contendo detalhes adicionais sobre o erro.
+     * <p>
+     * Útil para retornar múltiplos erros de validação de uma vez, onde a chave é o campo
+     * e o valor é a mensagem de erro.
+     */
+    @Schema(description = "Detalhes adicionais sobre o erro, como erros de validação de campos.", example = "{\"fieldName\": \"A mensagem de erro.\"}")
     private Map<String, String> details;
-
-    /** Construtor sem detalhes */
-    public ErrorDTO(Instant timestamp, int status, String error, String message) {
-        this.timestamp = timestamp;
-        this.status = status;
-        this.error = error;
-        this.message = message;
-        this.details = null;
-    }
 }

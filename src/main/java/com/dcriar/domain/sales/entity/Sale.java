@@ -26,24 +26,39 @@ import java.util.List;
 @EqualsAndHashCode(of = "id")
 public class Sale {
 
+    /**
+     * O ID único da venda.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * A data e hora em que a venda foi registrada.
+     * Gerado automaticamente no momento da criação.
+     */
     @CreationTimestamp
     @Column(name = "sale_date", nullable = false, updatable = false)
     private OffsetDateTime saleDate;
 
+    /**
+     * O canal de venda onde esta transação ocorreu.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "canal_venda_id", nullable = false)
     private CanalVenda canalVenda;
 
+    /**
+     * O valor total da venda, somando os preços de todos os itens.
+     */
     @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalAmount;
 
     /**
      * A lista de itens que compõem esta venda.
-     * O mappedBy agora aponta para o campo 'sale' na entidade SaleItem.
+     * A relação é bidirecional, e o {@code mappedBy} aponta para o campo 'sale' na entidade SaleItem.
+     * O {@code CascadeType.ALL} garante que operações como persistência e remoção se propaguem para os itens.
+     * O {@code orphanRemoval = true} garante que itens removidos da lista sejam deletados do banco de dados.
      */
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
@@ -60,4 +75,3 @@ public class Sale {
         item.setSale(this);
     }
 }
-

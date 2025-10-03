@@ -3,15 +3,27 @@ package com.dcriar.exception.custom;
 import lombok.Getter;
 
 /**
- * Exception lançada quando uma venda não é encontrada no banco de dados.
+ * Exceção lançada quando uma operação tenta acessar uma Venda (Sale)
+ * que não existe no banco de dados, usando seu ID.
+ * <p>
+ * É tipicamente capturada por um handler global que retorna uma resposta
+ * HTTP 404 (Not Found).
  */
 @Getter
 public class SaleNotFoundException extends RuntimeException {
 
+    /**
+     * O ID da venda que não foi encontrada.
+     */
     private final Long saleId;
 
+    /**
+     * Constrói a exceção com o ID da venda não encontrada.
+     *
+     * @param saleId O ID utilizado na busca que falhou.
+     */
     public SaleNotFoundException(Long saleId) {
-        super("Venda não encontrada com o ID: " + saleId);
+        super(String.format("Venda não encontrada com o ID: %d", saleId));
         this.saleId = saleId;
     }
 }

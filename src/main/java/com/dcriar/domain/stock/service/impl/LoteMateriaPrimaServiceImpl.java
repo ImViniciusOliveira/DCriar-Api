@@ -28,6 +28,12 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Implementação da lógica de negócio para o gerenciamento de Lotes de Matéria-Prima.
+ * <p>
+ * Esta classe coordena as operações de criação, busca e movimentação de lotes,
+ * garantindo a consistência dos dados e aplicando as regras de negócio.
+ */
 @Service
 @RequiredArgsConstructor
 public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
@@ -38,6 +44,22 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     private final LoteMateriaPrimaMapper loteMateriaPrimaMapper;
     private final MovimentacaoMapper movimentacaoMapper;
 
+    /**
+     * Cria um novo lote de matéria-prima no estoque e registra sua movimentação inicial de compra.
+     * <p>
+     * O processo inclui:
+     * <ol>
+     *     <li>Busca e validação do tipo de matéria-prima.</li>
+     *     <li>Cálculo do custo por unidade base do lote.</li>
+     *     <li>Criação do lote e sua movimentação inicial de ENTRADA_COMPRA.</li>
+     *     <li>Persistência do lote e da movimentação.</li>
+     * </ol>
+     *
+     * @param requestDTO O DTO contendo os dados para a criação do lote.
+     * @return Um {@link LoteMateriaPrimaResponseDTO} representando o lote recém-criado com seu saldo inicial.
+     * @throws TipoMateriaPrimaNotFoundException se o tipo de matéria-prima não for encontrado.
+     * @throws EstoqueRegraNegocioException se houver um erro nas regras de negócio durante o cálculo do custo por unidade base.
+     */
     @Override
     @Transactional
     public LoteMateriaPrimaResponseDTO create(LoteMateriaPrimaRequestDTO requestDTO) {
@@ -69,6 +91,18 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return responseDTO;
     }
 
+    /**
+     * Calcula o custo por unidade base de um lote de matéria-prima.
+     * <p>
+     * Este cálculo é crucial para a valoração do estoque e depende da unidade de estoque
+     * do lote e da unidade de consumo do tipo de matéria-prima.
+     *
+     * @param dto O DTO de requisição do lote de matéria-prima.
+     * @param tipo O tipo de matéria-prima associado ao lote.
+     * @return O custo por unidade base como {@link BigDecimal}.
+     * @throws EstoqueRegraNegocioException se as unidades de medida forem incompatíveis para o cálculo
+     *                                      ou se atributos necessários (ex: larguraMm) estiverem ausentes/inválidos.
+     */
     private BigDecimal calcularCustoPorUnidadeBase(LoteMateriaPrimaRequestDTO dto, TipoMateriaPrima tipo) {
         if (dto.getCustoTotalLote() == null) {
             return null;
@@ -80,11 +114,15 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         switch (dto.getUnidadeDeEstoque()) {
             case METRO_LINEAR -> {
                 if (unidadeConsumo != UnidadeDeMedida.CENTIMETRO_QUADRADO) {
-                    throw new EstoqueRegraNegocioException("Cálculo de custo para METRO_LINEAR só é suportado com consumo em CENTIMETRO_QUADRADO.");
+                    throw new EstoqueRegraNegocioException(String.format(
+                            "Cálculo de custo para %s só é suportado com consumo em %s.",
+                            UnidadeDeMedida.METRO_LINEAR.getDescricao(), UnidadeDeMedida.CENTIMETRO_QUADRADO.getDescricao()));
                 }
                 Object larguraMmObj = dto.getAtributos().get("larguraMm");
                 if (!(larguraMmObj instanceof Number)) {
-                    throw new EstoqueRegraNegocioException("Para lotes em METRO_LINEAR, o atributo 'larguraMm' é obrigatório para o cálculo de custo.");
+                    throw new EstoqueRegraNegocioException(String.format(
+                            "Para lotes em %s, o atributo 'larguraMm' é obrigatório e deve ser um número para o cálculo de custo.",
+                            UnidadeDeMedida.METRO_LINEAR.getDescricao()));
                 }
                 BigDecimal larguraCm = new BigDecimal(((Number) larguraMmObj).intValue())
                         .divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
@@ -93,7 +131,9 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             }
             case LITRO -> {
                 if (unidadeConsumo != UnidadeDeMedida.MILILITRO) {
-                    throw new EstoqueRegraNegocioException("Cálculo de custo para LITRO só é suportado com consumo em MILILITRO.");
+                    throw new EstoqueRegraNegocioException(String.format(
+                            "Cálculo de custo para %s só é suportado com consumo em %s.",
+                            UnidadeDeMedida.LITRO.getDescricao(), UnidadeDeMedida.MILILITRO.getDescricao()));
                 }
                 totalUnidadesBase = dto.getQuantidadeInicial().multiply(new BigDecimal("1000"));
             }
@@ -107,6 +147,13 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return dto.getCustoTotalLote().divide(totalUnidadesBase, 8, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Busca um lote de matéria-prima pelo seu ID e retorna seus detalhes, incluindo o saldo atual.
+     *
+     * @param id O ID do lote a ser buscado.
+     * @return Um {@link LoteMateriaPrimaResponseDTO} com os detalhes do lote e seu saldo.
+     * @throws LoteMateriaPrimaNotFoundException se o lote não for encontrado.
+     */
     @Override
     @Transactional(readOnly = true)
     public LoteMateriaPrimaResponseDTO findById(Long id) {
@@ -119,6 +166,11 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return responseDTO;
     }
 
+    /**
+     * Lista todos os lotes de matéria-prima cadastrados no sistema, incluindo o saldo atual de cada um.
+     *
+     * @return Uma lista de {@link LoteMateriaPrimaResponseDTO} com todos os lotes e seus saldos.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<LoteMateriaPrimaResponseDTO> findAll() {
@@ -132,18 +184,31 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Registra uma nova movimentação de estoque para um lote existente.
+     * <p>
+     * Esta operação é usada para dar baixa no estoque (SAIDA_PRODUCAO),
+     * registrar perdas (PERDA_DESCARTE) ou fazer correções (AJUSTE_INVENTARIO).
+     * Antes de registrar a movimentação, verifica se há saldo suficiente para operações de saída.
+     *
+     * @param loteId O ID do lote a ser movimentado.
+     * @param requestDTO O DTO com os detalhes da movimentação (tipo, quantidade, motivo).
+     * @return O {@link MovimentacaoResponseDTO} da movimentação recém-criada.
+     * @throws LoteMateriaPrimaNotFoundException se o lote não for encontrado.
+     * @throws EstoqueInsuficienteParaMovimentacaoException se não houver saldo suficiente para a movimentação de saída.
+     */
     @Override
     @Transactional
     public MovimentacaoResponseDTO registrarMovimentacao(Long loteId, MovimentacaoRequestDTO requestDTO) {
         LoteMateriaPrima lote = findLoteById(loteId);
         BigDecimal saldoAtual = calcularSaldo(lote);
 
-        // Verificação de saldo
-        if (saldoAtual.add(requestDTO.getQuantidade()).compareTo(BigDecimal.ZERO) < 0) {
-            // Lança a nova exceção que não depende de canal
+        // Verificação de saldo para operações que diminuem o estoque
+        if (requestDTO.getQuantidade().compareTo(BigDecimal.ZERO) < 0 &&
+                saldoAtual.add(requestDTO.getQuantidade()).compareTo(BigDecimal.ZERO) < 0) {
             throw new EstoqueInsuficienteParaMovimentacaoException(
                     lote.getId(),
-                    requestDTO.getQuantidade().doubleValue(),
+                    requestDTO.getQuantidade().abs().doubleValue(), // Quantidade requisitada sempre positiva na mensagem
                     saldoAtual.doubleValue()
             );
         }
@@ -160,6 +225,13 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return movimentacaoMapper.toResponseDTO(movimentacaoSalva);
     }
 
+    /**
+     * Lista todo o histórico de movimentações ("Livro-Razão") de um lote específico.
+     *
+     * @param loteId O ID do lote cujo histórico será consultado.
+     * @return Uma lista de {@link MovimentacaoResponseDTO} contendo todas as movimentações do lote.
+     * @throws LoteMateriaPrimaNotFoundException se o lote não for encontrado.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<MovimentacaoResponseDTO> listarMovimentacoesPorLote(Long loteId) {
@@ -169,11 +241,24 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Busca um lote de matéria-prima pelo seu ID.
+     *
+     * @param id O ID do lote a ser buscado.
+     * @return A entidade {@link LoteMateriaPrima} encontrada.
+     * @throws LoteMateriaPrimaNotFoundException se o lote não for encontrado.
+     */
     private LoteMateriaPrima findLoteById(Long id) {
         return loteMateriaPrimaRepository.findById(id)
                 .orElseThrow(() -> new LoteMateriaPrimaNotFoundException(id));
     }
 
+    /**
+     * Calcula o saldo de estoque atual para um determinado lote.
+     *
+     * @param lote O lote para o qual o saldo será calculado.
+     * @return O saldo de estoque atual como um {@link BigDecimal}.
+     */
     private BigDecimal calcularSaldo(LoteMateriaPrima lote) {
         return movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
     }

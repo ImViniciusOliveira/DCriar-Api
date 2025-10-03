@@ -31,13 +31,20 @@ import java.util.stream.Collectors;
 
 /**
  * Implementação da lógica de negócio para o módulo de Vendas (Sales).
+ * <p>
+ * Esta classe é responsável por orquestrar o processo de registro de vendas,
+ * incluindo a validação, cálculo de preços, ajuste de estoque e persistência dos dados.
+ * <p>
  * Observações importantes:
- * - O método ajustarEstoque do EstoqueProdutoService lança {@link EstoqueInsuficienteCanalException}
- *   quando não há saldo suficiente. Aqui nós deixamos essa exceção propagar (não a "transformamos")
- *   para que o {@link com.dcriar.exception.handler.GlobalExceptionHandler} construa um ErrorDTO
- *   com detalhes (produtoId, canalVendaId, quantidadeRequisitada, estoqueAtual).
- * - O método é transacional: se qualquer item falhar (ex.: estoque insuficiente), toda a operação
- *   será revertida.
+ * <ul>
+ *     <li>O método {@code ajustarEstoque} do {@code EstoqueProdutoService} lança
+ *     {@link EstoqueInsuficienteCanalException} quando não há saldo suficiente.
+ *     Deixamos essa exceção propagar para que o {@link com.dcriar.exception.handler.GlobalExceptionHandler}
+ *     construa um {@code ErrorDTO} com detalhes (produtoId, canalVendaId, quantidadeRequisitada, estoqueAtual).</li>
+ *     <li>Todos os métodos que modificam o estado do banco de dados são transacionais,
+ *     garantindo que, se qualquer item falhar (ex.: estoque insuficiente), toda a operação
+ *     será revertida (rollback).</li>
+ * </ul>
  */
 @Service
 @RequiredArgsConstructor
@@ -51,20 +58,44 @@ public class SaleServiceImpl implements SaleService {
     private final EstoqueProdutoService estoqueProdutoService;
     private final SaleMapper saleMapper;
 
+    /**
+     * Regista uma nova venda no sistema e orquestra a baixa automática de estoque.
+     * <p>
+     * O processo envolve:
+     * <ol>
+     *     <li>Busca e validação do canal de venda.</li>
+     *     <li>Criação de uma nova entidade de venda em memória.</li>
+     *     <li>Iteração sobre cada item da requisição:
+     *         <ul>
+     *             <li>Busca e validação do produto.</li>
+     *             <li>Determinação do preço unitário (considerando promoções).</li>
+     *             <li>Criação e adição do item à venda.</li>
+     *             <li>Realização da redução de estoque no canal e no estoque mestre.</li>
+     *         </ul>
+     *     </li>
+     *     <li>Cálculo do valor total da venda.</li>
+     *     <li>Persistência da venda e seus itens.</li>
+     * </ol>
+     *
+     * @param requestDTO O DTO contendo os dados da nova venda.
+     * @return Um {@link SaleResponseDTO} representando a venda registrada.
+     * @throws CanalVendaNotFoundException se o canal de venda não for encontrado.
+     * @throws ProdutoNotFoundException se um produto de um item não for encontrado.
+     * @throws PrecoVarejoNaoDefinidoException se o preço de varejo para um produto não estiver definido.
+     * @throws EstoqueInsuficienteCanalException se não houver estoque suficiente no canal para um produto.
+     */
     @Override
     @Transactional
     public SaleResponseDTO registerSale(SaleRequestDTO requestDTO) {
         CanalVenda canalVenda = canalVendaRepository.findById(requestDTO.getCanalVendaId())
                 .orElseThrow(() -> new CanalVendaNotFoundException(requestDTO.getCanalVendaId()));
 
-        // Cria a venda em memória (não precisa persistir antes das baixas; a transação garante rollback em caso de erro)
         Sale newSale = Sale.builder()
                 .canalVenda(canalVenda)
                 .build();
 
         BigDecimal totalAmount = BigDecimal.ZERO;
 
-        // Processa cada item: valida produto, calcula preço, faz baixa de estoque e adiciona item à venda
         for (SaleItemRequestDTO itemDTO : requestDTO.getItems()) {
             Produto produto = produtoRepository.findById(itemDTO.getProdutoId())
                     .orElseThrow(() -> new ProdutoNotFoundException(itemDTO.getProdutoId()));
@@ -76,11 +107,11 @@ public class SaleServiceImpl implements SaleService {
                     ? preco.getValorPromocional()
                     : preco.getValor();
 
-            BigDecimal itemTotalPrice = unitPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantity()));
+            BigDecimal itemTotalPrice = unitPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantidade()));
 
             SaleItem saleItem = SaleItem.builder()
                     .produto(produto)
-                    .quantity(itemDTO.getQuantity())
+                    .quantity(itemDTO.getQuantidade())
                     .unitPrice(unitPrice)
                     .totalPrice(itemTotalPrice)
                     .build();
@@ -88,19 +119,20 @@ public class SaleServiceImpl implements SaleService {
             newSale.addItem(saleItem);
             totalAmount = totalAmount.add(itemTotalPrice);
 
-            // Faz a redução de estoque no canal e no estoque mestre.
-            // OBS: ajustarEstoque pode lançar EstoqueInsuficienteException com contexto completo.
-            performStockReduction(produto, canalVenda, itemDTO.getQuantity());
+            performStockReduction(produto, canalVenda, itemDTO.getQuantidade());
         }
 
         newSale.setTotalAmount(totalAmount);
         Sale savedSale = saleRepository.save(newSale);
 
-        // Observação: se for interessante registrar o saleId no motivo das movimentações,
-        // podemos salvar a venda antes de processar as baixas (ou atualizar as movimentações depois).
         return saleMapper.toResponseDTO(savedSale);
     }
 
+    /**
+     * Lista todas as vendas registradas no sistema.
+     *
+     * @return Uma lista de {@link SaleResponseDTO} contendo todas as vendas.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<SaleResponseDTO> findAll() {
@@ -109,6 +141,13 @@ public class SaleServiceImpl implements SaleService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Busca uma venda específica pelo seu ID.
+     *
+     * @param id O ID da venda a ser buscada.
+     * @return O {@link SaleResponseDTO} da venda encontrada.
+     * @throws SaleNotFoundException se a venda com o ID especificado não for encontrada.
+     */
     @Override
     @Transactional(readOnly = true)
     public SaleResponseDTO findById(Long id) {
@@ -119,31 +158,34 @@ public class SaleServiceImpl implements SaleService {
 
     /**
      * Realiza as baixas de estoque no canal e cria a movimentação no estoque mestre.
-     * Importante:
-     * - deixamos a {@link EstoqueInsuficienteCanalException} propagar para que o GlobalExceptionHandler
-     *   crie uma resposta http/400 com detalhes (produtoId, canalVendaId, quantidadeRequisitada, estoqueAtual).
+     * <p>
+     * Este método é responsável por:
+     * <ol>
+     *     <li>Ajustar o estoque do produto no canal de venda (redução).</li>
+     *     <li>Registrar uma movimentação de saída no estoque mestre do produto.</li>
+     * </ol>
+     * Deixamos a {@link EstoqueInsuficienteCanalException} propagar para que o {@code GlobalExceptionHandler}
+     * crie uma resposta HTTP 400 com detalhes (produtoId, canalVendaId, quantidadeRequisitada, estoqueAtual).
      *
-     * @param produto produto que será baixado
-     * @param canalVenda canal onde será feita a baixa
-     * @param quantity quantidade a remover (valor positivo aqui representa unidades vendidas)
+     * @param produto O produto que terá seu estoque reduzido.
+     * @param canalVenda O canal de venda onde a baixa será efetuada.
+     * @param quantity A quantidade a ser removida (valor positivo aqui representa unidades vendidas).
+     * @throws EstoqueInsuficienteCanalException se não houver estoque suficiente no canal.
      */
     private void performStockReduction(Produto produto, CanalVenda canalVenda, int quantity) {
-        // Ajusta o estoque no canal (quantidade negativa: saída)
         AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
                 .produtoId(produto.getId())
                 .canalVendaId(canalVenda.getId())
-                .quantidade(quantity * -1)
+                .quantidade(quantity * -1) // Quantidade negativa para indicar saída
                 .build();
 
-        // Chamada que pode lançar EstoqueInsuficienteException (com estoqueAtual etc.). Não capturamos nem transformamos.
         estoqueProdutoService.ajustarEstoque(ajusteDTO);
 
-        // Depois da baixa no canal, registra a movimentação no estoque mestre (saída de venda)
         MovimentacaoEstoqueProduto movimentacaoVenda = MovimentacaoEstoqueProduto.builder()
                 .produto(produto)
                 .tipo(TipoMovimentacaoProduto.SAIDA_VENDA)
                 .quantidade(quantity * -1)
-                .motivo("Venda no canal: " + canalVenda.getNome())
+                .motivo(String.format("Venda no canal: %s", canalVenda.getNome()))
                 .build();
 
         movimentacaoEstoqueProdutoRepository.save(movimentacaoVenda);

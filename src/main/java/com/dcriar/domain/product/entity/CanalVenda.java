@@ -18,10 +18,16 @@ import lombok.*;
 @EqualsAndHashCode(of = "id")
 public class CanalVenda {
 
+    /**
+     * O ID único do canal de venda.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * O nome único do canal de venda (ex: "SHOPEE", "MERCADO_LIVRE", "LOJA_FISICA").
+     */
     @Column(nullable = false, unique = true, length = 50)
     private String nome;
 }

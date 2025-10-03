@@ -22,18 +22,30 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(of = "id")
 public class SaleItem {
 
+    /**
+     * O ID único do item da venda.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * A venda à qual este item pertence.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sale_id", nullable = false)
     private Sale sale;
 
+    /**
+     * O produto que foi vendido neste item.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "produto_id", nullable = false)
     private Produto produto;
 
+    /**
+     * A quantidade de unidades do produto vendidas.
+     */
     @Column(nullable = false)
     private Integer quantity;
 
@@ -52,4 +64,3 @@ public class SaleItem {
     @Column(name = "total_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalPrice;
 }
-

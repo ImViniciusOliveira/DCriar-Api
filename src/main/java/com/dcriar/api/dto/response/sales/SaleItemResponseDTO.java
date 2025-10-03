@@ -6,7 +6,10 @@ import lombok.*;
 import java.math.BigDecimal;
 
 /**
- * DTO para representar um item individual dentro da resposta de uma venda.
+ * Data Transfer Object (DTO) que representa um item de linha em uma Venda.
+ * <p>
+ * Cada objeto deste DTO corresponde a um produto e a sua respectiva quantidade,
+ * preço e valor total dentro da lista de itens de uma {@link SaleResponseDTO}.
  */
 @Getter
 @Setter
@@ -15,21 +18,21 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class SaleItemResponseDTO {
 
-    @Schema(description = "ID único do item da venda.", example = "1")
+    @Schema(description = "O ID único do item da venda.", example = "1")
     private Long id;
 
-    @Schema(description = "SKU do produto vendido.", example = "ETQ-KFT-RD-50")
+    @Schema(description = "O SKU (Stock Keeping Unit) do produto vendido.", example = "ETQ-KFT-RD-50")
     private String produtoSku;
 
-    @Schema(description = "Nome do produto vendido.", example = "Etiqueta Redonda Kraft 5x5cm")
+    @Schema(description = "O nome descritivo do produto vendido.", example = "Etiqueta Redonda Kraft 5x5cm")
     private String nomeProduto;
 
-    @Schema(description = "Quantidade de unidades do produto vendidas.", example = "2")
+    @Schema(description = "A quantidade de unidades do produto vendidas.", example = "2")
     private Integer quantity;
 
-    @Schema(description = "Preço unitário do produto no momento da venda.", example = "25.00")
+    @Schema(description = "O preço unitário do produto no momento da venda.", example = "25.00")
     private BigDecimal unitPrice;
 
-    @Schema(description = "Preço total para este item (quantidade * preço unitário).", example = "50.00")
+    @Schema(description = "O preço total para este item (quantidade * preço unitário).", example = "50.00")
     private BigDecimal totalPrice;
 }

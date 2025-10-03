@@ -1,16 +1,15 @@
 package com.dcriar.api.dto.response.product;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 
 /**
- * DTO para enviar os dados de dimensões (largura e comprimento) nas respostas da API.
+ * Data Transfer Object (DTO) que representa as dimensões de um produto.
+ * <p>
+ * Este DTO é usado para comunicar as dimensões físicas (largura e comprimento)
+ * de um item, geralmente em centímetros.
  */
 @Getter
 @Setter
@@ -19,9 +18,15 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class DimensoesResponseDTO {
 
+    /**
+     * A largura unitária do item em centímetros.
+     */
     @Schema(description = "Largura unitária do item em centímetros.", example = "20.0")
     private BigDecimal largura;
 
+    /**
+     * O comprimento unitário do item em centímetros.
+     */
     @Schema(description = "Comprimento unitário do item em centímetros.", example = "30.0")
     private BigDecimal comprimento;
 }

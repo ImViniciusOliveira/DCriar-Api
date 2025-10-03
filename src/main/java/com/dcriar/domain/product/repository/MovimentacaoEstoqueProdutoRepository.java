@@ -18,20 +18,19 @@ public interface MovimentacaoEstoqueProdutoRepository extends JpaRepository<Movi
     /**
      * Calcula o saldo de estoque físico total para um determinado produto
      * somando todas as suas movimentações.
+     *
+     * @param produto O produto para o qual o saldo será calculado.
+     * @return O saldo de estoque atual como um {@link Integer}.
      */
     @Query("SELECT COALESCE(SUM(m.quantidade), 0) FROM MovimentacaoEstoqueProduto m WHERE m.produto = :produto")
     Integer findSaldoByProduto(@Param("produto") Produto produto);
 
     /**
      * Busca todo o histórico de movimentações ("Livro-Razão") de um produto específico.
-     * O Spring Data JPA cria a implementação deste método automaticamente
-     * com base no seu nome, gerando uma query "WHERE produto = ?".
      *
      * @param produto O produto cujo histórico será buscado.
      * @return Uma lista com todas as movimentações do produto.
      */
     List<MovimentacaoEstoqueProduto> findAllByProduto(Produto produto);
 
-    boolean existsByProduto(Produto produto);
 }
-

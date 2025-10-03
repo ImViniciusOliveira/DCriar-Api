@@ -1,35 +1,28 @@
 package com.dcriar.api.validation.validator;
 
-import com.dcriar.api.dto.request.sales.SaleRequestDTO;
 import com.dcriar.api.dto.request.sales.SaleItemRequestDTO;
+import com.dcriar.api.dto.request.sales.SaleRequestDTO;
 import com.dcriar.api.validation.annotation.ValidSaleRequest;
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorContext;
 
 import java.util.List;
 
-public class SaleRequestValidator implements ConstraintValidator<ValidSaleRequest, SaleRequestDTO> {
+/**
+ * Validador para o DTO {@link SaleRequestDTO}, acionado pela anotação {@link ValidSaleRequest}.
+ * <p>
+ * Este validador verifica se os campos essenciais da requisição de venda estão presentes:
+ * <ul>
+ *     <li>O {@code canalVendaId} não pode ser nulo.</li>
+ *     <li>A lista de {@code items} não pode ser nula nem vazia.</li>
+ * </ul>
+ * A validação de cada item individual na lista é delegada para suas respectivas anotações.
+ */
+public class SaleRequestValidator extends BaseValidator<ValidSaleRequest, SaleRequestDTO> {
 
     @Override
-    public boolean isValid(SaleRequestDTO dto, ConstraintValidatorContext context) {
-        if (dto == null) return true;
-
-        boolean valid = true;
-        context.disableDefaultConstraintViolation();
-
-        if (dto.getCanalVendaId() == null) {
-            context.buildConstraintViolationWithTemplate("O ID do canal de venda é obrigatório.")
-                    .addPropertyNode("canalVendaId").addConstraintViolation();
-            valid = false;
-        }
+    protected void validate(SaleRequestDTO dto) {
+        addViolationIf(dto.getCanalVendaId() == null, "O ID do canal de venda é obrigatório.", "canalVendaId");
 
         List<SaleItemRequestDTO> items = dto.getItems();
-        if (items == null || items.isEmpty()) {
-            context.buildConstraintViolationWithTemplate("A lista de itens não pode estar vazia.")
-                    .addPropertyNode("items").addConstraintViolation();
-            valid = false;
-        }
-
-        return valid;
+        addViolationIf(items == null || items.isEmpty(), "A lista de itens não pode estar vazia.", "items");
     }
 }

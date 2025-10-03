@@ -3,53 +3,47 @@ package com.dcriar.api.validation.validator;
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.validation.annotation.ValidLoteMateriaPrimaRequest;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorContext;
+
 import java.math.BigDecimal;
 import java.util.Map;
 
-public class LoteMateriaPrimaRequestValidator implements ConstraintValidator<ValidLoteMateriaPrimaRequest, LoteMateriaPrimaRequestDTO> {
+/**
+ * Validador para o DTO {@link LoteMateriaPrimaRequestDTO}, acionado pela anotação {@link ValidLoteMateriaPrimaRequest}.
+ * <p>
+ * Este validador verifica as regras de negócio para a criação de um novo lote de matéria-prima:
+ * <ul>
+ *     <li>Campos básicos como {@code tipoMateriaPrimaId} e {@code unidadeDeEstoque} são obrigatórios.</li>
+ *     <li>Os campos {@code quantidadeInicial} e {@code custoTotalLote} devem ser valores positivos.</li>
+ *     <li>Se a {@code unidadeDeEstoque} for METRO_LINEAR, o mapa de {@code atributos} deve conter a chave 'larguraMm' com um valor numérico positivo.</li>
+ * </ul>
+ */
+public class LoteMateriaPrimaRequestValidator extends BaseValidator<ValidLoteMateriaPrimaRequest, LoteMateriaPrimaRequestDTO> {
 
     @Override
-    public boolean isValid(LoteMateriaPrimaRequestDTO dto, ConstraintValidatorContext context) {
-        if (dto == null) return true;
+    protected void validate(LoteMateriaPrimaRequestDTO dto) {
+        addViolationIf(dto.getTipoMateriaPrimaId() == null, "O ID do tipo de matéria-prima é obrigatório.", "tipoMateriaPrimaId");
 
-        boolean valid = true;
-        context.disableDefaultConstraintViolation();
+        UnidadeDeMedida unidadeDeEstoque = dto.getUnidadeDeEstoque();
+        addViolationIf(unidadeDeEstoque == null, "A unidade de estoque é obrigatória.", "unidadeDeEstoque");
 
-        if (dto.getTipoMateriaPrimaId() == null) {
-            context.buildConstraintViolationWithTemplate("O ID do tipo de matéria-prima é obrigatório.")
-                    .addPropertyNode("tipoMateriaPrimaId").addConstraintViolation();
-            valid = false;
-        }
+        addViolationIf(dto.getQuantidadeInicial() == null || dto.getQuantidadeInicial().compareTo(BigDecimal.ZERO) <= 0, "A quantidade inicial deve ser um valor positivo.", "quantidadeInicial");
+        addViolationIf(dto.getCustoTotalLote() == null || dto.getCustoTotalLote().compareTo(BigDecimal.ZERO) <= 0, "O custo total do lote deve ser um valor positivo.", "custoTotalLote");
 
-        if (dto.getUnidadeDeEstoque() == null) {
-            context.buildConstraintViolationWithTemplate("A unidade de estoque é obrigatória.")
-                    .addPropertyNode("unidadeDeEstoque").addConstraintViolation();
-            valid = false;
-        }
-
-        if (dto.getQuantidadeInicial() == null || dto.getQuantidadeInicial().compareTo(BigDecimal.ZERO) <= 0) {
-            context.buildConstraintViolationWithTemplate("A quantidade inicial deve ser maior que zero.")
-                    .addPropertyNode("quantidadeInicial").addConstraintViolation();
-            valid = false;
-        }
-
-        if (dto.getCustoTotalLote() == null || dto.getCustoTotalLote().compareTo(BigDecimal.ZERO) <= 0) {
-            context.buildConstraintViolationWithTemplate("O custo total do lote deve ser maior que zero.")
-                    .addPropertyNode("custoTotalLote").addConstraintViolation();
-            valid = false;
-        }
-
-        if (dto.getUnidadeDeEstoque() == UnidadeDeMedida.METRO_LINEAR) {
+        // Validação condicional para METRO_LINEAR
+        if (unidadeDeEstoque == UnidadeDeMedida.METRO_LINEAR) {
             Map<String, Object> atributos = dto.getAtributos();
-            if (atributos == null || !atributos.containsKey("larguraMm")) {
-                context.buildConstraintViolationWithTemplate("Para unidade METRO_LINEAR, o atributo 'larguraMm' é obrigatório.")
-                        .addPropertyNode("atributos").addConstraintViolation();
-                valid = false;
+            addViolationIf(atributos == null || !atributos.containsKey("larguraMm") || atributos.get("larguraMm") == null, "Para a unidade de estoque METRO_LINEAR, o atributo 'larguraMm' é obrigatório.", "atributos");
+
+            if (atributos != null && atributos.containsKey("larguraMm") && atributos.get("larguraMm") != null) {
+                Object larguraValue = atributos.get("larguraMm");
+                boolean isInvalidNumber = true;
+                if (larguraValue instanceof Number) {
+                    if (((Number) larguraValue).doubleValue() > 0) {
+                        isInvalidNumber = false;
+                    }
+                }
+                addViolationIf(isInvalidNumber, "O atributo 'larguraMm' deve ser um número positivo.", "atributos");
             }
         }
-
-        return valid;
     }
 }

@@ -7,11 +7,21 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * Repositório para a entidade {@link OrdemDeCorte}.
+ * <p>
+ * Fornece os métodos de acesso a dados para as ordens de corte,
+ * utilizando a abstração do Spring Data JPA.
+ */
 @Repository
 public interface OrdemDeCorteRepository extends JpaRepository<OrdemDeCorte, Long> {
 
-    boolean existsByProduto(Produto produto);
-
+    /**
+     * Busca todas as ordens de corte associadas a um determinado produto.
+     *
+     * @param produto O produto cujas ordens de corte serão buscadas.
+     * @return Uma lista com todas as ordens de corte encontradas para o produto.
+     */
     List<OrdemDeCorte> findAllByProduto(Produto produto);
 
 }

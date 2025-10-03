@@ -1,7 +1,9 @@
 package com.dcriar.api.controller.product;
 
+import com.dcriar.api.assembler.ProdutoModelAssembler;
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
+import com.dcriar.api.model.ProdutoModel;
 import com.dcriar.domain.product.service.ProdutoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -11,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -28,13 +31,14 @@ import java.util.List;
 public class ProdutoController {
 
     private final ProdutoService produtoService;
+    private final ProdutoModelAssembler produtoModelAssembler;
 
     @GetMapping
     @Operation(summary = "Listar todos os produtos")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
-    public ResponseEntity<List<ProdutoResponseDTO>> findAll() {
+    public CollectionModel<ProdutoModel> findAll() {
         List<ProdutoResponseDTO> produtos = produtoService.findAll();
-        return ResponseEntity.ok(produtos);
+        return produtoModelAssembler.toCollectionModel(produtos);
     }
 
     @GetMapping("/{id}")
@@ -43,9 +47,9 @@ public class ProdutoController {
             @ApiResponse(responseCode = "200", description = "Produto encontrado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
     })
-    public ResponseEntity<ProdutoResponseDTO> findById(@PathVariable Long id) {
+    public ProdutoModel findById(@PathVariable Long id) {
         ProdutoResponseDTO produto = produtoService.findById(id);
-        return ResponseEntity.ok(produto);
+        return produtoModelAssembler.toModel(produto);
     }
 
     @PostMapping
@@ -55,15 +59,16 @@ public class ProdutoController {
                     headers = @Header(name = "Location", description = "URL do novo recurso")),
             @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos", content = @Content)
     })
-    public ResponseEntity<ProdutoResponseDTO> create(@RequestBody @Valid ProdutoRequestDTO requestDTO) {
+    public ResponseEntity<ProdutoModel> create(@RequestBody @Valid ProdutoRequestDTO requestDTO) {
         ProdutoResponseDTO produtoCriado = produtoService.create(requestDTO);
+        ProdutoModel produtoModel = produtoModelAssembler.toModel(produtoCriado);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(produtoCriado.getId())
                 .toUri();
 
-        return ResponseEntity.created(location).body(produtoCriado);
+        return ResponseEntity.created(location).body(produtoModel);
     }
 
     @PatchMapping("/{id}")
@@ -73,9 +78,9 @@ public class ProdutoController {
             @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos", content = @Content),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
     })
-    public ResponseEntity<ProdutoResponseDTO> update(@PathVariable Long id, @RequestBody @Valid ProdutoRequestDTO requestDTO) {
+    public ProdutoModel update(@PathVariable Long id, @RequestBody @Valid ProdutoRequestDTO requestDTO) {
         ProdutoResponseDTO produtoAtualizado = produtoService.update(id, requestDTO);
-        return ResponseEntity.ok(produtoAtualizado);
+        return produtoModelAssembler.toModel(produtoAtualizado);
     }
 
     @DeleteMapping("/{id}")

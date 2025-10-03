@@ -21,6 +21,9 @@ import lombok.*;
 @EqualsAndHashCode(of = "id")
 public class TipoMateriaPrima {
 
+    /**
+     * O ID único do tipo de matéria-prima.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -38,4 +41,3 @@ public class TipoMateriaPrima {
     @Column(nullable = false, length = 50)
     private UnidadeDeMedida unidadeDeConsumo;
 }
-

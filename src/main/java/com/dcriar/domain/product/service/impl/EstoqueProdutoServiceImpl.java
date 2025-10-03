@@ -18,6 +18,7 @@ import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.exception.custom.CanalVendaNotFoundException;
 import com.dcriar.exception.custom.EstoqueInsuficienteCanalException;
+import com.dcriar.exception.custom.EstoqueRegraNegocioException;
 import com.dcriar.exception.custom.ProdutoNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Implementação da lógica de negócio para Estoque de Produtos Acabados.
+ * Implementação da lógica de negócio para o gerenciamento de estoque de produtos acabados.
+ * <p>
+ * Esta classe orquestra as operações de ajuste de estoque nos canais de venda e no estoque físico (mestre),
+ * garantindo a consistência e a aplicação das regras de negócio.
  */
 @Service
 @RequiredArgsConstructor
@@ -40,24 +44,44 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
     private final MovimentacaoProdutoMapper movimentacaoProdutoMapper;
 
+    /**
+     * Ajusta o estoque de um produto acabado em um canal de venda específico (distribuição).
+     * <p>
+     * Esta operação pode aumentar ou diminuir o estoque de um produto em um canal.
+     * Regras de negócio aplicadas:
+     * <ul>
+     *     <li>Ao adicionar estoque a um canal, o total distribuído não pode ultrapassar o estoque físico total disponível.</li>
+     *     <li>O estoque de um canal não pode se tornar negativo após a operação.</li>
+     * </ul>
+     *
+     * @param requestDTO O DTO contendo os dados do ajuste de estoque (produtoId, canalVendaId, quantidade).
+     * @return Um {@link EstoqueResponseDTO} representando o estado atualizado do estoque no canal.
+     * @throws ProdutoNotFoundException se o produto especificado não for encontrado.
+     * @throws CanalVendaNotFoundException se o canal de venda especificado não for encontrado.
+     * @throws EstoqueRegraNegocioException se o total distribuído exceder o estoque físico total.
+     * @throws EstoqueInsuficienteCanalException se a operação resultar em estoque negativo no canal.
+     */
     @Override
     @Transactional
     public EstoqueResponseDTO ajustarEstoque(AjusteEstoqueRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         CanalVenda canalVenda = findCanalVendaById(requestDTO.getCanalVendaId());
 
+        // Regra de negócio: ao adicionar estoque em um canal, o total distribuído
+        // não pode ultrapassar o estoque físico disponível.
         if (requestDTO.getQuantidade() > 0) {
             Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
-            List<Estoque> estoquesAtuais = estoqueRepository.findAllByProduto(produto);
-            int totalDistribuido = estoquesAtuais.stream()
+            int totalDistribuido = estoqueRepository.findAllByProduto(produto).stream()
                     .mapToInt(Estoque::getQuantidade)
                     .sum();
+
             int novoTotalDistribuido = totalDistribuido + requestDTO.getQuantidade();
 
             if (novoTotalDistribuido > estoqueFisicoTotal) {
-                throw new EstoqueInsuficienteCanalException(produto.getId(),
-                        "O total distribuído (" + novoTotalDistribuido + ") não pode ultrapassar o estoque físico total (" + estoqueFisicoTotal + ").");
-
+                throw new EstoqueRegraNegocioException(String.format(
+                        "Não é possível alocar %d unidades. O total distribuído (%d) excederia o estoque físico total (%d).",
+                        requestDTO.getQuantidade(), novoTotalDistribuido, estoqueFisicoTotal
+                ));
             }
         }
 
@@ -66,27 +90,31 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
         int novaQuantidade = estoque.getQuantidade() + requestDTO.getQuantidade();
 
-        // --- INÍCIO DA MODIFICAÇÃO ---
-        // Em vez de lançar um erro genérico ou a exceção antiga, agora lançamos a nossa
-        // exceção unificada, que carrega todo o contexto do erro.
+        // Regra de negócio: o estoque de um canal não pode ficar negativo.
         if (novaQuantidade < 0) {
             throw new EstoqueInsuficienteCanalException(
                     produto.getId(),
                     canalVenda.getId(),
                     requestDTO.getQuantidade(), // A quantidade que se tentou remover
-                    estoque.getQuantidade() // O estoque atual antes da operação
+                    estoque.getQuantidade()     // O estoque atual antes da operação
             );
         }
-        // --- FIM DA MODIFICAÇÃO ---
 
         estoque.setQuantidade(novaQuantidade);
-
         Estoque estoqueSalvo = estoqueRepository.save(estoque);
         return estoqueMapper.toResponseDTO(estoqueSalvo);
     }
 
-    // ... resto dos métodos permanecem os mesmos ...
-
+    /**
+     * Ajusta o Estoque Físico Total de um produto ("Estoque Mestre") através de uma movimentação manual.
+     * <p>
+     * Esta operação registra uma entrada ou saída direta no estoque mestre do produto,
+     * sem afetar diretamente os estoques dos canais de venda. É utilizada para correções
+     * de inventário, registro de perdas, ou entradas de produção.
+     *
+     * @param requestDTO O DTO contendo os dados do ajuste de estoque físico (produtoId, quantidade, motivo).
+     * @throws ProdutoNotFoundException se o produto especificado não for encontrado.
+     */
     @Override
     @Transactional
     public void ajustarEstoqueFisico(AjusteEstoqueProdutoRequestDTO requestDTO) {
@@ -102,6 +130,16 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         movimentacaoEstoqueProdutoRepository.save(movimentacaoManual);
     }
 
+    /**
+     * Consulta o estoque de um produto específico em um determinado canal de venda.
+     *
+     * @param produtoId O ID do produto a ser consultado.
+     * @param canalVendaId O ID do canal de venda a ser consultado.
+     * @return Um {@link EstoqueResponseDTO} representando o estoque do produto no canal.
+     * @throws ProdutoNotFoundException se o produto especificado não for encontrado.
+     * @throws CanalVendaNotFoundException se o canal de venda especificado não for encontrado.
+     * @throws EstoqueRegraNegocioException se o registro de estoque para a combinação produto/canal não existir.
+     */
     @Override
     @Transactional(readOnly = true)
     public EstoqueResponseDTO consultarEstoque(Long produtoId, Long canalVendaId) {
@@ -110,9 +148,17 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
         return estoqueRepository.findByProdutoAndCanalVenda(produto, canalVenda)
                 .map(estoqueMapper::toResponseDTO)
-                .orElseThrow(() -> new ProdutoNotFoundException(produtoId));
+                .orElseThrow(() -> new EstoqueRegraNegocioException(String.format(
+                        "Estoque para o produto ID %d no canal ID %d não encontrado.", produtoId, canalVendaId)));
     }
 
+    /**
+     * Lista todos os registros de estoque para um determinado produto, em todos os canais de venda.
+     *
+     * @param produtoId O ID do produto cujos estoques serão listados.
+     * @return Uma lista de {@link EstoqueResponseDTO} contendo todos os registros de estoque do produto.
+     * @throws ProdutoNotFoundException se o produto especificado não for encontrado.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<EstoqueResponseDTO> listarEstoquesPorProduto(Long produtoId) {
@@ -122,6 +168,13 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lista todo o histórico de movimentações ("Livro-Razão") do Estoque Físico Total de um produto.
+     *
+     * @param produtoId O ID do produto cujo histórico será consultado.
+     * @return Uma lista de {@link MovimentacaoProdutoResponseDTO} representando todas as movimentações do produto.
+     * @throws ProdutoNotFoundException se o produto especificado não for encontrado.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<MovimentacaoProdutoResponseDTO> listarMovimentacoesPorProduto(Long produtoId) {
@@ -132,6 +185,14 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Cria um novo registro de estoque para um produto em um canal de venda.
+     * Método auxiliar para ser usado quando um registro de estoque não existe e precisa ser inicializado.
+     *
+     * @param produto O produto a ser associado ao novo estoque.
+     * @param canalVenda O canal de venda a ser associado ao novo estoque.
+     * @return Uma nova instância de {@link Estoque} com quantidade inicial zero.
+     */
     private Estoque criarNovoEstoque(Produto produto, CanalVenda canalVenda) {
         return Estoque.builder()
                 .produto(produto)
@@ -140,14 +201,29 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .build();
     }
 
+    /**
+     * Busca uma entidade {@link Produto} pelo seu ID.
+     * Método auxiliar para evitar duplicação de código e centralizar o tratamento de "não encontrado".
+     *
+     * @param id O ID do produto a ser buscado.
+     * @return A entidade {@link Produto} encontrada.
+     * @throws ProdutoNotFoundException se o produto com o ID especificado não for encontrado.
+     */
     private Produto findProdutoById(Long id) {
         return produtoRepository.findById(id)
                 .orElseThrow(() -> new ProdutoNotFoundException(id));
     }
 
+    /**
+     * Busca uma entidade {@link CanalVenda} pelo seu ID.
+     * Método auxiliar para evitar duplicação de código e centralizar o tratamento de "não encontrado".
+     *
+     * @param id O ID do canal de venda a ser buscado.
+     * @return A entidade {@link CanalVenda} encontrada.
+     * @throws CanalVendaNotFoundException se o canal de venda com o ID especificado não for encontrado.
+     */
     private CanalVenda findCanalVendaById(Long id) {
         return canalVendaRepository.findById(id)
                 .orElseThrow(() -> new CanalVendaNotFoundException(id));
     }
 }
-

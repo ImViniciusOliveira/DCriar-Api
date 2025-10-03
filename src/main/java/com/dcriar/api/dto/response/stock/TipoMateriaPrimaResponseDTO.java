@@ -2,24 +2,36 @@ package com.dcriar.api.dto.response.stock;
 
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.*;
 
 /**
- * DTO para enviar dados de um Tipo de Matéria-Prima como resposta da API.
- *
- * @param id O ID único gerado para o tipo de matéria-prima.
- * @param nome O nome do tipo de matéria-prima.
- * @param unidadeDeConsumo A unidade em que o material é consumido.
+ * Data Transfer Object (DTO) que representa a resposta de um Tipo de Matéria-Prima.
+ * <p>
+ * Este DTO fornece os detalhes essenciais de um tipo de matéria-prima, como seu nome
+ * e a unidade de medida utilizada para consumo no processo produtivo.
  */
-@Schema(description = "Representação de um tipo de matéria-prima no sistema.")
-public record TipoMateriaPrimaResponseDTO(
-        @Schema(description = "ID único do tipo de matéria-prima.", example = "1")
-        Long id,
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class TipoMateriaPrimaResponseDTO {
 
-        @Schema(description = "Nome do tipo de matéria-prima.", example = "Adesivo Vinil Branco Brilho")
-        String nome,
+    /**
+     * O ID único do tipo de matéria-prima.
+     */
+    @Schema(description = "ID único do tipo de matéria-prima.", example = "1")
+    private Long id;
 
-        @Schema(description = "Unidade em que o material é consumido.", example = "CENTIMETRO_QUADRADO")
-        UnidadeDeMedida unidadeDeConsumo
-) {
+    /**
+     * O nome descritivo do tipo de matéria-prima.
+     */
+    @Schema(description = "Nome do tipo de matéria-prima.", example = "Adesivo Vinil Branco Brilho")
+    private String nome;
+
+    /**
+     * A unidade de medida em que o material é consumido durante a produção.
+     */
+    @Schema(description = "Unidade em que o material é consumido.", example = "CENTIMETRO_QUADRADO")
+    private UnidadeDeMedida unidadeDeConsumo;
 }
-
