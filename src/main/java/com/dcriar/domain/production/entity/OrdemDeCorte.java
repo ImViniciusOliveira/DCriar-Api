@@ -8,6 +8,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Representa uma Ordem de Corte no sistema, detalhando a produção de um produto a partir de matéria-prima.
@@ -21,7 +23,7 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(toBuilder = true)
-@ToString
+@ToString(exclude = "cortesRealizados")
 @EqualsAndHashCode(of = "id")
 @Table(name = "ordens_de_corte")
 public class OrdemDeCorte {
@@ -65,6 +67,13 @@ public class OrdemDeCorte {
     @Column(name = "modo_calculo", nullable = false, length = 20)
     private ModoCalculo modoCalculo;
 
+    @Embedded
+    private Margens margens;
+
+    @OneToMany(mappedBy = "ordemDeCorte", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
+    private List<CorteRealizado> cortesRealizados = new ArrayList<>();
+
     /**
      * A largura final do corte em centímetros.
      */
@@ -89,4 +98,9 @@ public class OrdemDeCorte {
      */
     @Column(name = "motivo")
     private String motivo;
+
+    public void addCorteRealizado(CorteRealizado corte) {
+        cortesRealizados.add(corte);
+        corte.setOrdemDeCorte(this);
+    }
 }

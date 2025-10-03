@@ -7,7 +7,8 @@ TRUNCATE TABLE
     sale_items,
     estoques,
     precos,
-    ordens_de_corte, -- Adicionada a nova tabela
+    cortes_realizados,
+    ordens_de_corte,
     movimentacoes_estoque_produto,
     movimentacoes_estoque_lote,
     lotes_materia_prima,
@@ -27,7 +28,8 @@ ALTER SEQUENCE canais_venda_id_seq RESTART WITH 1;
 ALTER SEQUENCE estoques_id_seq RESTART WITH 1;
 ALTER SEQUENCE sales_id_seq RESTART WITH 1;
 ALTER SEQUENCE sale_items_id_seq RESTART WITH 1;
-ALTER SEQUENCE ordens_de_corte_id_seq RESTART WITH 1; -- Adicionado o reset da nova tabela
+ALTER SEQUENCE ordens_de_corte_id_seq RESTART WITH 1;
+ALTER SEQUENCE cortes_realizados_id_seq RESTART WITH 1;
 
 -- 3. INSERÇÃO DE DADOS DE DESENVOLVIMENTO
 
@@ -51,8 +53,8 @@ INSERT INTO canais_venda (nome) VALUES ('LOJA_FISICA'), ('SHOPEE');
 
 -- ETAPA E: INSERIR PRODUTOS ACABADOS (AGORA COMO "MOLDES")
 INSERT INTO produtos (nome, sku, descricao, cor, unidades_por_produto, ativo, tipo_materia_prima_id, largura_cm_unitaria, comprimento_cm_unitario) VALUES
-                                                                                                                                                 ('Etiqueta Redonda Kraft 5x5cm', 'ETQ-KFT-RD-50', 'Pacote com 100 etiquetas.', 'Pardo', 100, true, 1, 5.0, 5.0),
-                                                                                                                                                 ('Etiqueta Retangular Vinil 9x5cm', 'ETQ-VNL-RT-95', 'Pacote com 100 etiquetas.', 'Branco', 100, true, 2, 9.0, 5.0);
+                                                                                                                                                       ('Etiqueta Redonda Kraft 5x5cm', 'ETQ-KFT-RD-50', 'Pacote com 100 etiquetas.', 'Pardo', 100, true, 1, 5.0, 5.0),
+                                                                                                                                                       ('Etiqueta Retangular Vinil 9x5cm', 'ETQ-VNL-RT-95', 'Pacote com 100 etiquetas.', 'Branco', 100, true, 2, 9.0, 5.0);
 
 -- ETAPA F: DEFINIR O ESTOQUE MESTRE INICIAL
 INSERT INTO movimentacoes_estoque_produto (produto_id, data, tipo, quantidade, motivo) VALUES
@@ -69,13 +71,17 @@ INSERT INTO precos (produto_id, tipo_preco, valor) VALUES
                                                        (1, 'VAREJO', 25.00),
                                                        (2, 'VAREJO', 35.00);
 
--- ETAPA I: INSERIR ORDENS DE CORTE DE EXEMPLO
--- Ordem Automática: 100 unidades (1 pacote) de 5x5cm.
--- Tamanho Final Comprimento: 5cm * 100 = 500cm
--- Tamanho Final Largura: 5cm
-INSERT INTO ordens_de_corte (produto_id, lote_principal_id, quantidade_produzida, modo_calculo, largura_final_cm, comprimento_final_cm, data_criacao, motivo) VALUES
-    (1, 1, 100, 'AUTOMATICO', 5.0, 500.0, NOW() - INTERVAL '2 day', 'Produção automática sem margens');
+-- ETAPA I: INSERIR ORDENS DE CORTE DE EXEMPLO (COM LÓGICA CORRIGIDA)
+-- Ordem Automática: O tamanho final é o tamanho do produto + margens.
+INSERT INTO ordens_de_corte (produto_id, lote_principal_id, quantidade_produzida, modo_calculo, largura_final_cm, comprimento_final_cm, data_criacao, motivo, canal_venda_destino_id, margem_superior_cm, margem_inferior_cm, margem_esquerda_cm, margem_direita_cm) VALUES
+    (1, 1, 100, 'AUTOMATICO', 5.2, 500.4, NOW() - INTERVAL '2 day', 'PEDIDO-SHP-101', 2, 0.2, 0.2, 0.1, 0.1);
 
--- Ordem Manual: Operador usou um pedaço maior do que o necessário.
-INSERT INTO ordens_de_corte (produto_id, lote_principal_id, quantidade_produzida, modo_calculo, largura_final_cm, comprimento_final_cm, data_criacao, motivo) VALUES
-    (2, 2, 50, 'MANUAL', 10.0, 260.0, NOW() - INTERVAL '1 day', 'Produção manual para aproveitar pedaço');
+-- Ordem Manual: O tamanho final é informado pelo operador, e as margens são ignoradas (zeradas).
+INSERT INTO ordens_de_corte (produto_id, lote_principal_id, quantidade_produzida, modo_calculo, largura_final_cm, comprimento_final_cm, data_criacao, motivo, canal_venda_destino_id, margem_superior_cm, margem_inferior_cm, margem_esquerda_cm, margem_direita_cm) VALUES
+    (2, 2, 50, 'MANUAL', 10.0, 260.0, NOW() - INTERVAL '1 day', 'PEDIDO-LJA-205', 1, 0.0, 0.0, 0.0, 0.0);
+
+-- ETAPA J: INSERIR CORTES REALIZADOS DE EXEMPLO
+INSERT INTO cortes_realizados (ordem_de_corte_id, largura_cm, comprimento_cm, quantidade, tipo) VALUES
+                                                                                                    (1, 5.0, 5.0, 100, 'PRODUTO'),
+                                                                                                    (2, 9.0, 5.0, 50, 'PRODUTO'),
+                                                                                                    (2, 1.0, 260.0, 1, 'SOBRA');
