@@ -23,6 +23,7 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
+@ToString(exclude = {"items"})
 @EqualsAndHashCode(of = "id")
 public class Sale {
 

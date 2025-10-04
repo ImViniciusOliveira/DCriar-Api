@@ -1,4 +1,4 @@
-package com.dcriar.api.hateous.model;
+package com.dcriar.api.hateous.production.model;
 
 import com.dcriar.api.dto.request.production.MargensRequestDTO;
 import com.dcriar.api.dto.response.production.CorteRealizadoDTO;

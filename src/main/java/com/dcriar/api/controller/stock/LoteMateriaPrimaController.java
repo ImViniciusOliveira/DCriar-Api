@@ -4,6 +4,10 @@ import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.dto.response.stock.MovimentacaoResponseDTO;
+import com.dcriar.api.hateous.stock.assembler.LoteMateriaPrimaModelAssembler;
+import com.dcriar.api.hateous.stock.assembler.MovimentacaoLoteModelAssembler;
+import com.dcriar.api.hateous.stock.model.LoteMateriaPrimaModel;
+import com.dcriar.api.hateous.stock.model.MovimentacaoLoteModel;
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -13,11 +17,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
 import java.util.List;
 
 /**
@@ -30,6 +33,8 @@ import java.util.List;
 public class LoteMateriaPrimaController {
 
     private final LoteMateriaPrimaService loteMateriaPrimaService;
+    private final LoteMateriaPrimaModelAssembler loteMateriaPrimaModelAssembler;
+    private final MovimentacaoLoteModelAssembler movimentacaoLoteModelAssembler;
 
     @PostMapping
     @Operation(summary = "Dar entrada de um novo lote no estoque")
@@ -38,18 +43,19 @@ public class LoteMateriaPrimaController {
                     headers = @Header(name = "Location", description = "URL do novo recurso")),
             @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos", content = @Content)
     })
-    public ResponseEntity<LoteMateriaPrimaResponseDTO> create(@RequestBody @Valid LoteMateriaPrimaRequestDTO requestDTO) {
+    public ResponseEntity<LoteMateriaPrimaModel> create(@RequestBody @Valid LoteMateriaPrimaRequestDTO requestDTO) {
         LoteMateriaPrimaResponseDTO loteCriado = loteMateriaPrimaService.create(requestDTO);
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
-                .buildAndExpand(loteCriado.getId()).toUri();
-        return ResponseEntity.created(location).body(loteCriado);
+        return loteMateriaPrimaModelAssembler.toCreatedResponseEntity(loteCriado);
     }
 
     @GetMapping
     @Operation(summary = "Listar todos os lotes de matéria-prima")
     @ApiResponse(responseCode = "200", description = "Lista de lotes retornada com sucesso")
-    public ResponseEntity<List<LoteMateriaPrimaResponseDTO>> findAll() {
-        return ResponseEntity.ok(loteMateriaPrimaService.findAll());
+    public ResponseEntity<CollectionModel<LoteMateriaPrimaModel>> findAll(
+            @RequestParam(required = false) Long tipoMateriaPrimaId,
+            @RequestParam(required = false) Boolean apenasLotesPrincipais) {
+        List<LoteMateriaPrimaResponseDTO> lotes = loteMateriaPrimaService.findAll(tipoMateriaPrimaId, apenasLotesPrincipais);
+        return ResponseEntity.ok(loteMateriaPrimaModelAssembler.toCollectionModel(lotes));
     }
 
     @GetMapping("/{id}")
@@ -58,8 +64,9 @@ public class LoteMateriaPrimaController {
             @ApiResponse(responseCode = "200", description = "Lote encontrado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
     })
-    public ResponseEntity<LoteMateriaPrimaResponseDTO> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(loteMateriaPrimaService.findById(id));
+    public ResponseEntity<LoteMateriaPrimaModel> findById(@PathVariable Long id) {
+        LoteMateriaPrimaResponseDTO lote = loteMateriaPrimaService.findById(id);
+        return loteMateriaPrimaModelAssembler.toOkResponseEntity(lote);
     }
 
     @PostMapping("/{loteId}/movimentacoes")
@@ -69,11 +76,11 @@ public class LoteMateriaPrimaController {
             @ApiResponse(responseCode = "400", description = "Dados inválidos ou saldo insuficiente", content = @Content),
             @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
     })
-    public ResponseEntity<MovimentacaoResponseDTO> registrarMovimentacao(
+    public ResponseEntity<MovimentacaoLoteModel> registrarMovimentacao(
             @PathVariable Long loteId,
             @RequestBody @Valid MovimentacaoRequestDTO requestDTO) {
         MovimentacaoResponseDTO movimentacao = loteMateriaPrimaService.registrarMovimentacao(loteId, requestDTO);
-        return ResponseEntity.status(201).body(movimentacao);
+        return movimentacaoLoteModelAssembler.toCreatedResponseEntity(movimentacao, loteId);
     }
 
     @GetMapping("/{loteId}/movimentacoes")
@@ -82,8 +89,8 @@ public class LoteMateriaPrimaController {
             @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
     })
-    public ResponseEntity<List<MovimentacaoResponseDTO>> listarMovimentacoes(@PathVariable Long loteId) {
-        return ResponseEntity.ok(loteMateriaPrimaService.listarMovimentacoesPorLote(loteId));
+    public ResponseEntity<CollectionModel<MovimentacaoLoteModel>> listarMovimentacoes(@PathVariable Long loteId) {
+        List<MovimentacaoResponseDTO> movimentacoes = loteMateriaPrimaService.listarMovimentacoesPorLote(loteId);
+        return ResponseEntity.ok(movimentacaoLoteModelAssembler.toCollectionModel(movimentacoes, loteId));
     }
 }
-

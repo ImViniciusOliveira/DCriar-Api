@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
+@ToString
 @EqualsAndHashCode(of = "id")
 public class Preco {
 

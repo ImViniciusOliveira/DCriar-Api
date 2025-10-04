@@ -24,6 +24,7 @@ public interface SaleMapper {
     /**
      * Converte a entidade SaleItem para o seu DTO de resposta.
      */
+    @Mapping(source = "produto.id", target = "produtoId")
     @Mapping(source = "produto.sku", target = "produtoSku")
     @Mapping(source = "produto.nome", target = "nomeProduto")
     SaleItemResponseDTO toResponseDTO(SaleItem saleItem);

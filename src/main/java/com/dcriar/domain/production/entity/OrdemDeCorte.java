@@ -67,6 +67,9 @@ public class OrdemDeCorte {
     @Column(name = "modo_calculo", nullable = false, length = 20)
     private ModoCalculo modoCalculo;
 
+    /**
+     * As margens de segurança aplicadas ao corte, se houver.
+     */
     @Embedded
     private Margens margens;
 

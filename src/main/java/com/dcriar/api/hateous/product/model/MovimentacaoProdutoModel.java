@@ -1,4 +1,4 @@
-package com.dcriar.api.hateous.model;
+package com.dcriar.api.hateous.product.model;
 
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;

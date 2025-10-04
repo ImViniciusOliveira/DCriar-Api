@@ -13,38 +13,44 @@ import java.util.List;
 public interface LoteMateriaPrimaService {
 
     /**
-     * Dá entrada de um novo lote de matéria-prima no estoque.
+     * Cria um novo lote de matéria-prima no sistema.
+     *
+     * @param requestDTO O DTO com os dados para a criação do lote.
+     * @return O {@link LoteMateriaPrimaResponseDTO} do lote recém-criado.
      */
     LoteMateriaPrimaResponseDTO create(LoteMateriaPrimaRequestDTO requestDTO);
 
     /**
-     * Busca um lote de matéria-prima pelo seu ID.
+     * Busca um lote de matéria-prima específico pelo seu ID.
+     *
+     * @param id O ID do lote a ser buscado.
+     * @return O {@link LoteMateriaPrimaResponseDTO} do lote encontrado.
      */
     LoteMateriaPrimaResponseDTO findById(Long id);
 
     /**
-     * Lista todos os lotes de matéria-prima cadastrados no sistema.
+     * Lista todos os lotes de matéria-prima, com a possibilidade de aplicar filtros.
+     *
+     * @param tipoMateriaPrimaId O ID do tipo de matéria-prima para filtrar (opcional).
+     * @param apenasLotesPrincipais Se true, filtra apenas lotes que não são sobras (opcional).
+     * @return Uma lista de {@link LoteMateriaPrimaResponseDTO} com os lotes filtrados.
      */
-    List<LoteMateriaPrimaResponseDTO> findAll();
+    List<LoteMateriaPrimaResponseDTO> findAll(Long tipoMateriaPrimaId, Boolean apenasLotesPrincipais);
 
     /**
-     * Regista uma nova movimentação de estoque para um lote existente.
-     * <p>
-     * Esta operação é usada para dar baixa no estoque (SAIDA_PRODUCAO),
-     * registar perdas (PERDA_DESCARTE) ou fazer correções (AJUSTE_INVENTARIO).
+     * Registra uma nova movimentação de estoque para um lote de matéria-prima.
      *
-     * @param loteId O ID do lote a ser movimentado.
-     * @param requestDTO O DTO com os detalhes da movimentação.
-     * @return O DTO de resposta da movimentação recém-criada.
+     * @param loteId O ID do lote de matéria-prima.
+     * @param requestDTO O DTO com os dados da movimentação.
+     * @return O {@link MovimentacaoResponseDTO} da movimentação registrada.
      */
     MovimentacaoResponseDTO registrarMovimentacao(Long loteId, MovimentacaoRequestDTO requestDTO);
 
     /**
-     * Lista todo o histórico de movimentações ("Livro-Razão") de um lote específico.
+     * Lista todo o histórico de movimentações de um lote de matéria-prima específico.
      *
      * @param loteId O ID do lote cujo histórico será consultado.
-     * @return Uma lista de DTOs, cada um representando uma movimentação.
+     * @return Uma lista de {@link MovimentacaoResponseDTO} representando todas as movimentações do lote.
      */
     List<MovimentacaoResponseDTO> listarMovimentacoesPorLote(Long loteId);
 }
-

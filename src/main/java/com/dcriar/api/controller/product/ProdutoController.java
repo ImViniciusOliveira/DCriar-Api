@@ -1,9 +1,9 @@
 package com.dcriar.api.controller.product;
 
-import com.dcriar.api.hateous.assembler.ProdutoModelAssembler;
+import com.dcriar.api.hateous.product.assembler.ProdutoModelAssembler;
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
-import com.dcriar.api.hateous.model.ProdutoModel;
+import com.dcriar.api.hateous.product.model.ProdutoModel;
 import com.dcriar.domain.product.service.ProdutoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -16,9 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
 import java.util.List;
 
 /**
@@ -61,14 +59,7 @@ public class ProdutoController {
     })
     public ResponseEntity<ProdutoModel> create(@RequestBody @Valid ProdutoRequestDTO requestDTO) {
         ProdutoResponseDTO produtoCriado = produtoService.create(requestDTO);
-        ProdutoModel produtoModel = produtoModelAssembler.toModel(produtoCriado);
-
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(produtoCriado.getId())
-                .toUri();
-
-        return ResponseEntity.created(location).body(produtoModel);
+        return produtoModelAssembler.toCreatedResponseEntity(produtoCriado);
     }
 
     @PatchMapping("/{id}")

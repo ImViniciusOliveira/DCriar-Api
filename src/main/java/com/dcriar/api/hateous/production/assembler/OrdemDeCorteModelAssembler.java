@@ -1,14 +1,17 @@
-package com.dcriar.api.hateous.assembler;
+package com.dcriar.api.hateous.production.assembler;
 
 import com.dcriar.api.controller.product.ProdutoController;
 import com.dcriar.api.controller.production.OrdemDeProducaoController;
 import com.dcriar.api.dto.response.production.OrdemDeCorteResponseDTO;
-import com.dcriar.api.hateous.model.OrdemDeCorteModel;
+import com.dcriar.api.hateous.production.model.OrdemDeCorteModel;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
+import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -27,40 +30,19 @@ public class OrdemDeCorteModelAssembler extends RepresentationModelAssemblerSupp
         super(OrdemDeProducaoController.class, OrdemDeCorteModel.class);
     }
 
-    /**
-     * Converte um {@link OrdemDeCorteResponseDTO} em um {@link OrdemDeCorteModel} e adiciona links HATEOAS.
-     *
-     * @param dto O DTO de resposta da ordem de corte.
-     * @return O modelo HATEOAS da ordem de corte com links.
-     */
     @Override
     @NonNull
     public OrdemDeCorteModel toModel(@NonNull OrdemDeCorteResponseDTO dto) {
         OrdemDeCorteModel model = OrdemDeCorteModel.fromDto(dto);
 
-        // Link self para o recurso de ordem de corte específico (assumindo que GET /{id} existirá)
         model.add(linkTo(methodOn(OrdemDeProducaoController.class).buscarOrdemDeCortePorId(model.getId())).withSelfRel());
-        // Link para o produto associado
         model.add(linkTo(methodOn(ProdutoController.class).findById(model.getProdutoId())).withRel("produto"));
-        // Link para a ação de excluir a ordem de corte
         model.add(linkTo(methodOn(OrdemDeProducaoController.class).excluirOrdemDeCorte(model.getId())).withRel("excluir-ordem-de-corte"));
-        // Link para a coleção de ordens de corte
         model.add(linkTo(methodOn(OrdemDeProducaoController.class).listarOrdensDeCorte()).withRel("ordens-de-corte"));
-
-
-        // Não é possível adicionar link para lotePrincipalId pois não há LoteController
-        // model.add(linkTo(methodOn(LoteController.class).findById(model.getLotePrincipalId())).withRel("lote-principal"));
 
         return model;
     }
 
-    /**
-     * Converte uma lista de {@link OrdemDeCorteResponseDTO} em um {@link CollectionModel} de
-     * {@link OrdemDeCorteModel}, adicionando links HATEOAS para a coleção.
-     *
-     * @param entities A lista de DTOs de resposta da ordem de corte.
-     * @return Um CollectionModel de OrdemDeCorteModel com links.
-     */
     @Override
     @NonNull
     public CollectionModel<OrdemDeCorteModel> toCollectionModel(@NonNull Iterable<? extends OrdemDeCorteResponseDTO> entities) {
@@ -70,11 +52,27 @@ public class OrdemDeCorteModelAssembler extends RepresentationModelAssemblerSupp
 
         CollectionModel<OrdemDeCorteModel> collectionModel = CollectionModel.of(ordemDeCorteModels);
 
-        // Link self para a coleção de ordens de corte
         collectionModel.add(linkTo(methodOn(OrdemDeProducaoController.class).listarOrdensDeCorte()).withSelfRel());
-        // Link para a ação de criar uma nova ordem de corte
         collectionModel.add(linkTo(methodOn(OrdemDeProducaoController.class).processarOrdemDeCorte(null)).withRel("criar-ordem-de-corte"));
 
         return collectionModel;
+    }
+
+    /**
+     * Constrói a resposta HTTP completa para a criação de um novo recurso, incluindo o status 201,
+     * o header Location e o corpo HATEOAS.
+     *
+     * @param dto O DTO do recurso recém-criado.
+     * @return Um ResponseEntity<OrdemDeCorteModel> pronto para ser retornado pelo controller.
+     */
+    public ResponseEntity<OrdemDeCorteModel> toCreatedResponseEntity(@NonNull OrdemDeCorteResponseDTO dto) {
+        OrdemDeCorteModel model = toModel(dto);
+
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(dto.getId())
+                .toUri();
+
+        return ResponseEntity.created(location).body(model);
     }
 }

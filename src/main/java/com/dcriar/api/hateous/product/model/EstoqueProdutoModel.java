@@ -1,4 +1,4 @@
-package com.dcriar.api.hateous.model;
+package com.dcriar.api.hateous.product.model;
 
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import lombok.Builder;

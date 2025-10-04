@@ -21,10 +21,10 @@ public interface LoteMateriaPrimaMapper {
      * @param lote A entidade de domínio a ser convertida.
      * @return O DTO de resposta correspondente.
      */
+    @Mapping(source = "tipoMateriaPrima.id", target = "tipoMateriaPrimaId") // <-- MAPEAMENTO ADICIONADO
     @Mapping(source = "tipoMateriaPrima.nome", target = "nomeTipoMateriaPrima")
     @Mapping(source = "loteDeOrigem.id", target = "loteDeOrigemId")
     @Mapping(target = "saldoEstoque", ignore = true)
     LoteMateriaPrimaResponseDTO toResponseDTO(LoteMateriaPrima lote);
 
 }
-

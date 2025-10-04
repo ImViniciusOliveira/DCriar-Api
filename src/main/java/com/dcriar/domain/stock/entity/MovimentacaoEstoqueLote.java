@@ -21,6 +21,7 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
+@ToString
 @EqualsAndHashCode(of = "id")
 public class MovimentacaoEstoqueLote {
 

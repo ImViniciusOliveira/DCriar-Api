@@ -1,11 +1,12 @@
 package com.dcriar.api.controller.production;
 
-import com.dcriar.api.hateous.assembler.OrdemDeCorteModelAssembler;
+import com.dcriar.api.hateous.production.assembler.OrdemDeCorteModelAssembler;
 import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
 import com.dcriar.api.dto.response.production.OrdemDeCorteResponseDTO;
-import com.dcriar.api.hateous.model.OrdemDeCorteModel;
+import com.dcriar.api.hateous.production.model.OrdemDeCorteModel;
 import com.dcriar.domain.production.service.OrdemDeProducaoService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -14,13 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -29,7 +24,7 @@ import java.util.List;
  * Implementa o padrão HATEOAS para enriquecer as respostas com links navegáveis.
  */
 @RestController
-@RequestMapping("/api/v1/producao/ordens-de-corte") // Ajustado o RequestMapping para ser mais específico
+@RequestMapping("/api/v1/producao/ordens-de-corte")
 @RequiredArgsConstructor
 @Tag(name = "Produção - Ordens de Corte", description = "Endpoints para gerenciamento de ordens de corte")
 public class OrdemDeProducaoController {
@@ -38,24 +33,24 @@ public class OrdemDeProducaoController {
     private final OrdemDeCorteModelAssembler ordemDeCorteModelAssembler;
 
     /**
-     * Processa uma ordem de corte, consumindo material e gerando sobras automaticamente.
+     * Processa e cria uma nova ordem de corte, consumindo material e gerando sobras automaticamente.
      * Retorna a ordem de corte processada com links HATEOAS.
      *
      * @param requestDTO O DTO com os detalhes da ordem de corte.
-     * @return Uma resposta HTTP 200 (OK) contendo o {@link OrdemDeCorteModel} com links.
+     * @return Uma resposta HTTP 201 (Created) com a localização do novo recurso e o {@link OrdemDeCorteModel} no corpo.
      */
     @PostMapping
-    @Operation(summary = "Processar uma ordem de corte",
+    @Operation(summary = "Processar e criar uma ordem de corte",
             description = "Endpoint para automatizar o consumo de material de um rolo. Ele dá baixa no comprimento do lote principal e, se houver sobra, cria automaticamente um novo lote para o retalho.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Ordem de corte processada com sucesso."),
+            @ApiResponse(responseCode = "201", description = "Ordem de corte criada com sucesso.",
+                    headers = @Header(name = "Location", description = "URL do novo recurso")),
             @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos ou saldo/dimensões insuficientes.", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Lote de matéria-prima principal não encontrado.", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Recurso relacionado (produto, lote) não encontrado.", content = @Content)
     })
     public ResponseEntity<OrdemDeCorteModel> processarOrdemDeCorte(@RequestBody @Valid OrdemDeCorteRequestDTO requestDTO) {
         OrdemDeCorteResponseDTO responseDTO = ordemDeProducaoService.processarOrdemDeCorte(requestDTO);
-        OrdemDeCorteModel ordemDeCorteModel = ordemDeCorteModelAssembler.toModel(responseDTO);
-        return ResponseEntity.ok(ordemDeCorteModel);
+        return ordemDeCorteModelAssembler.toCreatedResponseEntity(responseDTO);
     }
 
     /**
@@ -72,7 +67,7 @@ public class OrdemDeProducaoController {
             @ApiResponse(responseCode = "404", description = "Ordem de corte não encontrada.", content = @Content)
     })
     public ResponseEntity<OrdemDeCorteModel> buscarOrdemDeCortePorId(@PathVariable Long id) {
-        OrdemDeCorteResponseDTO responseDTO = ordemDeProducaoService.buscarOrdemDeCortePorId(id); // Assumindo que este método existe no service
+        OrdemDeCorteResponseDTO responseDTO = ordemDeProducaoService.buscarOrdemDeCortePorId(id);
         OrdemDeCorteModel ordemDeCorteModel = ordemDeCorteModelAssembler.toModel(responseDTO);
         return ResponseEntity.ok(ordemDeCorteModel);
     }
@@ -87,7 +82,7 @@ public class OrdemDeProducaoController {
     @Operation(summary = "Listar todas as ordens de corte")
     @ApiResponse(responseCode = "200", description = "Lista de ordens de corte retornada com sucesso.")
     public ResponseEntity<CollectionModel<OrdemDeCorteModel>> listarOrdensDeCorte() {
-        List<OrdemDeCorteResponseDTO> ordensDeCorteDTO = ordemDeProducaoService.listarTodasOrdensDeCorte(); // Assumindo que este método existe no service
+        List<OrdemDeCorteResponseDTO> ordensDeCorteDTO = ordemDeProducaoService.listarTodasOrdensDeCorte();
         CollectionModel<OrdemDeCorteModel> collectionModel = ordemDeCorteModelAssembler.toCollectionModel(ordensDeCorteDTO);
         return ResponseEntity.ok(collectionModel);
     }

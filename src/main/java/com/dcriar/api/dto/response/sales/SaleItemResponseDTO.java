@@ -21,6 +21,9 @@ public class SaleItemResponseDTO {
     @Schema(description = "O ID único do item da venda.", example = "1")
     private Long id;
 
+    @Schema(description = "O ID do produto vendido.", example = "101")
+    private Long produtoId;
+
     @Schema(description = "O SKU (Stock Keeping Unit) do produto vendido.", example = "ETQ-KFT-RD-50")
     private String produtoSku;
 
