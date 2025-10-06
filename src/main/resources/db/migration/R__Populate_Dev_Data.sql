@@ -37,18 +37,29 @@ ALTER SEQUENCE cortes_realizados_id_seq RESTART WITH 1;
 -- ETAPA A: INSERIR TIPOS DE MATÉRIAS-PRIMAS
 INSERT INTO tipos_materia_prima (nome, unidade_de_consumo) VALUES
     ('Adesivo Kraft Pardo', 'CENTIMETRO_QUADRADO'),
-    ('Adesivo Vinil Branco Brilho', 'CENTIMETRO_QUADRADO'),
-    ('Adesivo Vinil Transparente Fosco', 'CENTIMETRO_QUADRADO');
+    ('Adesivo Vinil Branco Brilho', 'METRO_QUADRADO'),
+    ('Adesivo Vinil Transparente Fosco', 'METRO_LINEAR'),
+    ('Papel Couchê', 'CENTIMETRO_LINEAR'),
+    ('Vinil Fosco', 'QUILOGRAMA'),
+    ('Vinil Brilho', 'GRAMA'),
+    ('Papel Adesivo', 'LITRO'),
+    ('Filme BOPP', 'MILILITRO'),
+    ('Papel Offset', 'UNIDADE'),
+    ('Papel Reciclado', 'OUTROS');
 
 -- ETAPA B: INSERIR LOTES FÍSICOS NO ESTOQUE
 -- Lotes principais comprados de fornecedores
 INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, atributos, lote_de_origem_id) VALUES
-    (1, 'METRO_LINEAR', '{ "larguraMm": 300 }', null), -- Lote ID 1
-    (2, 'METRO_LINEAR', '{ "larguraMm": 500 }', null), -- Lote ID 2
-    (3, 'METRO_LINEAR', '{ "larguraMm": 500 }', null); -- Lote ID 3
--- Lote de retalho/sobra gerado internamente a partir de uma ordem de corte
-INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, atributos, lote_de_origem_id) VALUES
-    (2, 'METRO_LINEAR', '{ "larguraMm": 100 }', 2); -- Lote ID 4 (Retalho do Lote 2)
+    (1, 'CENTIMETRO_QUADRADO', '{ "larguraMm": 300 }', null), -- Lote ID 1
+    (2, 'METRO_QUADRADO', '{ "larguraMm": 500 }', null), -- Lote ID 2
+    (3, 'METRO_LINEAR', '{ "larguraMm": 500 }', null), -- Lote ID 3
+    (4, 'CENTIMETRO_LINEAR', '{ "larguraMm": 400 }', null), -- Lote ID 4
+    (5, 'QUILOGRAMA', '{ "pesoKg": 10 }', null), -- Lote ID 5
+    (6, 'GRAMA', '{ "pesoG": 500 }', null), -- Lote ID 6
+    (7, 'LITRO', '{ "volumeL": 20 }', null), -- Lote ID 7
+    (8, 'MILILITRO', '{ "volumeMl": 2000 }', null), -- Lote ID 8
+    (9, 'UNIDADE', '{ "quantidade": 100 }', null), -- Lote ID 9
+    (10, 'OUTROS', '{ "descricao": "Material especial" }', null); -- Lote ID 10
 
 -- ETAPA C: REGISTRAR AS ENTRADAS DE ESTOQUE DE INSUMOS
 INSERT INTO movimentacoes_estoque_lote (lote_id, data, tipo, quantidade, motivo, custo_por_unidade_base) VALUES
@@ -65,10 +76,17 @@ INSERT INTO canais_venda (nome) VALUES
     ('MERCADO_LIVRE');    -- ID 4
 
 -- ETAPA E: INSERIR PRODUTOS ACABADOS (AGORA COMO "MOLDES")
-INSERT INTO produtos (nome, sku, descricao, cor, unidades_por_produto, ativo, foto_principal_url, tipo_materia_prima_id, largura_cm_unitaria, comprimento_cm_unitario) VALUES
-    ('Etiqueta Redonda Kraft 5x5cm', 'ETQ-KFT-RD-50', 'Pacote com 100 etiquetas adesivas em papel kraft.', 'Pardo', 100, true, '', 1, 5.0, 5.0),
-    ('Etiqueta Retangular Vinil 9x5cm', 'ETQ-VNL-RT-95', 'Pacote com 100 etiquetas de vinil branco para diversas finalidades.', 'Branco', 100, true, '', 2, 9.0, 5.0),
-    ('Adesivo Transparente Coração 3x3cm', 'ETQ-TRN-CR-30', 'Pacote com 100 adesivos de coração em vinil transparente.', 'Transparente', 100, true, '', 3, 3.0, 3.0);
+INSERT INTO produtos (nome, sku, descricao, cor, unidades_por_produto, ativo, foto_principal_url) VALUES
+    ('Etiqueta Kraft 5x5cm', 'ETQ-KFT-5X5', 'Etiqueta em papel kraft 5x5cm', 'Pardo', 100, true, '/assets/images/products/ETQ-KFT-5X5.jpg'),
+    ('Etiqueta Vinil Brilho 9x5cm', 'ETQ-VNL-BR-9X5', 'Etiqueta vinil branco brilho 9x5cm', 'Branco', 100, true, '/assets/images/products/ETQ-VNL-BR-9X5.jpg'),
+    ('Etiqueta Vinil Fosco 3x3cm', 'ETQ-VNL-FS-3X3', 'Etiqueta vinil fosco 3x3cm', 'Transparente', 100, true, '/assets/images/products/ETQ-VNL-FS-3X3.jpg'),
+    ('Etiqueta Couchê 4x4cm', 'ETQ-COU-4X4', 'Etiqueta papel couchê 4x4cm', 'Branco', 100, true, '/assets/images/products/ETQ-COU-4X4.jpg'),
+    ('Etiqueta BOPP 6x6cm', 'ETQ-BOPP-6X6', 'Etiqueta filme BOPP 6x6cm', 'Transparente', 100, true, '/assets/images/products/ETQ-BOPP-6X6.jpg'),
+    ('Etiqueta Offset 7x7cm', 'ETQ-OFF-7X7', 'Etiqueta papel offset 7x7cm', 'Branco', 100, true, '/assets/images/products/ETQ-OFF-7X7.jpg'),
+    ('Etiqueta Reciclado 8x8cm', 'ETQ-REC-8X8', 'Etiqueta papel reciclado 8x8cm', 'Pardo', 100, true, '/assets/images/products/ETQ-REC-8X8.jpg'),
+    ('Etiqueta Adesivo 10x10cm', 'ETQ-ADS-10X10', 'Etiqueta papel adesivo 10x10cm', 'Branco', 100, true, '/assets/images/products/ETQ-ADS-10X10.jpg'),
+    ('Etiqueta Especial 12x12cm', 'ETQ-ESP-12X12', 'Etiqueta especial 12x12cm', 'Colorido', 100, true, '/assets/images/products/ETQ-ESP-12X12.jpg'),
+    ('Etiqueta Genérica 15x15cm', 'ETQ-GEN-15X15', 'Etiqueta genérica 15x15cm', 'Branco', 100, true, '/assets/images/products/ETQ-GEN-15X15.jpg');
 
 -- ETAPA F: DEFINIR O ESTOQUE MESTRE INICIAL (Estoque Lógico Central)
 INSERT INTO movimentacoes_estoque_produto (produto_id, data, tipo, quantidade, motivo) VALUES
