@@ -2,6 +2,8 @@ package com.dcriar.domain.production.service;
 
 import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
 import com.dcriar.api.dto.response.production.OrdemDeCorteResponseDTO;
+import com.dcriar.api.dto.request.production.SimulacaoOrdemDeCorteRequestDTO;
+import com.dcriar.api.dto.response.production.SimulacaoOrdemDeCorteResponseDTO;
 import com.dcriar.exception.custom.RegraNegocioException;
 
 import java.util.List;
@@ -45,4 +47,11 @@ public interface OrdemDeProducaoService {
      * @return Uma lista de DTOs de resposta contendo todas as ordens de corte.
      */
     List<OrdemDeCorteResponseDTO> listarTodasOrdensDeCorte();
+
+    /**
+     * Simula uma ordem de corte, calculando automaticamente o tamanho final e sugerindo lotes disponíveis.
+     * @param requestDTO O DTO com produto e quantidade.
+     * @return DTO de resposta com dados simulados e links HATEOAS.
+     */
+    SimulacaoOrdemDeCorteResponseDTO simularOrdemDeCorte(SimulacaoOrdemDeCorteRequestDTO requestDTO);
 }

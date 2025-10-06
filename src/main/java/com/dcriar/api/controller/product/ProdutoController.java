@@ -23,7 +23,7 @@ import java.util.List;
  * Controller responsável por expor os endpoints da API para o recurso de Produto.
  */
 @RestController
-@RequestMapping("/api/v1/produtos")
+@RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 @Tag(name = "Produtos", description = "Endpoints para gerenciamento de produtos")
 public class ProdutoController {

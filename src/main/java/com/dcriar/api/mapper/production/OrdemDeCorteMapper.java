@@ -18,8 +18,8 @@ public interface OrdemDeCorteMapper {
     OrdemDeCorteMapper INSTANCE = Mappers.getMapper(OrdemDeCorteMapper.class);
 
     @Mapping(source = "produto.id", target = "produtoId")
-    @Mapping(source = "larguraFinalCm", target = "tamanhoFinal.larguraCm")
-    @Mapping(source = "comprimentoFinalCm", target = "tamanhoFinal.comprimentoCm")
+    @Mapping(source = "larguraFinalCm", target = "tamanhoFinal.largura")
+    @Mapping(source = "comprimentoFinalCm", target = "tamanhoFinal.comprimento")
     @Mapping(source = "modoCalculo", target = "modoCalculo")
     @Mapping(source = "canalVendaDestinoId", target = "canalVendaDestinoId")
     @Mapping(source = "margens", target = "margens") // Mapeia a entidade Margens para o DTO

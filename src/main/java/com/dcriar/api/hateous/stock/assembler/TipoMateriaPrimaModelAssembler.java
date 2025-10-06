@@ -36,7 +36,7 @@ public class TipoMateriaPrimaModelAssembler extends RepresentationModelAssembler
         // Link para o próprio recurso
         model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findById(dto.getId())).withSelfRel());
         // Link para a coleção de todos os tipos
-        model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));
+        model.add(linkTo(TipoMateriaPrimaController.class).withRel("tipos-materia-prima"));
         // Link para o recurso relacionado: listar todos os lotes deste tipo
         model.add(linkTo(methodOn(LoteMateriaPrimaController.class).findAll(dto.getId(), null)).withRel("lotes"));
 

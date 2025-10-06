@@ -5,6 +5,8 @@ import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
 import com.dcriar.api.dto.response.production.OrdemDeCorteResponseDTO;
 import com.dcriar.api.hateous.production.model.OrdemDeCorteModel;
 import com.dcriar.domain.production.service.OrdemDeProducaoService;
+import com.dcriar.api.dto.request.production.SimulacaoOrdemDeCorteRequestDTO;
+import com.dcriar.api.dto.response.production.SimulacaoOrdemDeCorteResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -103,5 +105,25 @@ public class OrdemDeProducaoController {
     public ResponseEntity<Void> excluirOrdemDeCorte(@PathVariable Long id) {
         ordemDeProducaoService.excluirOrdemDeCorte(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Simula uma ordem de corte, retornando dados calculados automaticamente e links HATEOAS.
+     * Permite ao usuário popular o formulário de ordem de produção com os dados simulados.
+     *
+     * @param requestDTO DTO com produto e quantidade.
+     * @return DTO de resposta com dados simulados e links HATEOAS.
+     */
+    @PostMapping("/simular")
+    @Operation(summary = "Simular ordem de corte",
+            description = "Recebe produto e quantidade, retorna cálculo automático do tamanho final, modo de cálculo, margens e lotes disponíveis.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Simulação realizada com sucesso."),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou produto não encontrado.", content = @Content)
+    })
+    public ResponseEntity<SimulacaoOrdemDeCorteResponseDTO> simularOrdemDeCorte(@RequestBody @Valid SimulacaoOrdemDeCorteRequestDTO requestDTO) {
+        // Chama o serviço para simular a ordem de corte e retorna os dados necessários para o front-end.
+        SimulacaoOrdemDeCorteResponseDTO response = ordemDeProducaoService.simularOrdemDeCorte(requestDTO);
+        return ResponseEntity.ok(response);
     }
 }

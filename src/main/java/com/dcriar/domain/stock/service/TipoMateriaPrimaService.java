@@ -2,8 +2,9 @@ package com.dcriar.domain.stock.service;
 
 import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
-
-import java.util.List;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Interface que define o contrato para a lógica de negócio de gerenciamento de Tipos de Matéria-Prima.
@@ -13,11 +14,14 @@ import java.util.List;
 public interface TipoMateriaPrimaService {
 
     /**
-     * Retorna uma lista de todos os tipos de matéria-prima cadastrados.
+     * Retorna uma lista paginada de todos os tipos de matéria-prima, com possibilidade de filtro.
      *
-     * @return Uma lista de {@link TipoMateriaPrimaResponseDTO}.
+     * @param nome              Filtro para buscar tipos de matéria-prima por nome (busca parcial, case-insensitive).
+     * @param unidadeDeConsumo  Filtro para buscar tipos de matéria-prima por unidade de consumo.
+     * @param pageable          Informações de paginação e ordenação.
+     * @return Uma página ({@link Page}) de {@link TipoMateriaPrimaResponseDTO}.
      */
-    List<TipoMateriaPrimaResponseDTO> findAll();
+    Page<TipoMateriaPrimaResponseDTO> findAll(String nome, UnidadeDeMedida unidadeDeConsumo, Pageable pageable);
 
     /**
      * Busca um tipo de matéria-prima pelo seu ID.

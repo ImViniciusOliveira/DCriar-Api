@@ -1,32 +1,14 @@
 package com.dcriar.api.dto.response.production;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
-
-import java.math.BigDecimal;
+import lombok.Data;
+import lombok.Builder;
 
 /**
- * Data Transfer Object (DTO) que representa as dimensões finais de um produto.
- * <p>
- * Este DTO é usado para comunicar o tamanho final (largura e comprimento) de um
- * item após o processo de corte.
+ * DTO de resposta para o tamanho final calculado na ordem de corte.
  */
-@Getter
-@Setter
+@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class TamanhoFinalResponseDTO {
-
-    /**
-     * A largura final do produto em centímetros.
-     */
-    @Schema(description = "A largura final do produto em centímetros.", example = "50.0")
-    private BigDecimal larguraCm;
-
-    /**
-     * O comprimento final do produto em centímetros.
-     */
-    @Schema(description = "O comprimento final do produto em centímetros.", example = "100.0")
-    private BigDecimal comprimentoCm;
+    private Double largura;
+    private Double comprimento;
 }

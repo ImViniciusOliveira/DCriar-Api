@@ -1,9 +1,9 @@
 package com.dcriar.domain.production.service.impl;
 
-import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
-import com.dcriar.api.dto.response.production.CorteRealizadoDTO;
-import com.dcriar.api.dto.response.production.OrdemDeCorteResponseDTO;
+import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
+import com.dcriar.api.dto.request.production.SimulacaoOrdemDeCorteRequestDTO;
+import com.dcriar.api.dto.response.production.*;
 import com.dcriar.api.mapper.production.OrdemDeCorteMapper;
 import com.dcriar.domain.product.entity.Dimensoes;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
@@ -157,6 +157,87 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeCorte ordem = ordemDeCorteRepository.findById(id)
                 .orElseThrow(() -> new RegraNegocioException("Ordem de corte não encontrada para exclusão: id=" + id));
         ordemDeCorteRepository.delete(ordem);
+    }
+
+    /**
+     * Simula uma ordem de corte, calculando automaticamente o tamanho final, modo de cálculo, margens e lotes disponíveis.
+     * Permite ao usuário popular o formulário de ordem de produção com os dados simulados.
+     *
+     * @param requestDTO DTO com produto e quantidade.
+     * @return DTO de resposta com dados simulados e links HATEOAS.
+     */
+    @Override
+    public SimulacaoOrdemDeCorteResponseDTO simularOrdemDeCorte(SimulacaoOrdemDeCorteRequestDTO requestDTO) {
+        Produto produto = produtoRepository.findById(requestDTO.getProdutoId())
+                .orElseThrow(() -> new ProdutoNotFoundException(requestDTO.getProdutoId()));
+
+        List<LoteMateriaPrima> lotesDoTipo = loteMateriaPrimaRepository.findAllByTipoMateriaPrima(produto.getTipoMateriaPrima());
+
+        List<LoteDisponivelResponseDTO> lotesDisponiveisDto = new ArrayList<>();
+        List<LoteMateriaPrima> lotesComEstoque = new ArrayList<>();
+
+        for (LoteMateriaPrima lote : lotesDoTipo) {
+            BigDecimal saldo = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+            if (saldo.compareTo(BigDecimal.ZERO) > 0) {
+                lotesComEstoque.add(lote);
+                lotesDisponiveisDto.add(LoteDisponivelResponseDTO.builder()
+                        .id(lote.getId())
+                        .tipoMateriaPrimaId(lote.getTipoMateriaPrima().getId())
+                        .nomeTipoMateriaPrima(lote.getTipoMateriaPrima().getNome())
+                        .unidadeDeEstoque(lote.getUnidadeDeEstoque().name())
+                        .saldoEstoque(saldo.doubleValue())
+                        .atributos(lote.getAtributos())
+                        .loteDeOrigemId(lote.getLoteDeOrigem() != null ? lote.getLoteDeOrigem().getId() : null)
+                        .build());
+            }
+        }
+
+        TamanhoFinalResponseDTO tamanhoFinalSimulado = null;
+        if (!lotesComEstoque.isEmpty()) {
+            LoteMateriaPrima loteParaSimulacao = lotesComEstoque.getFirst();
+
+            ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(
+                    requestDTO.getQuantidade(),
+                    produto,
+                    loteParaSimulacao,
+                    null
+            );
+
+            BigDecimal comprimentoFinal = corteCalculatorService.calcularComprimentoFinal(
+                    parametros.comprimentoProduto(),
+                    parametros.linhas(),
+                    null
+            );
+
+            Dimensoes dimensoesFinais = new Dimensoes(parametros.larguraTotalLoteCm(), comprimentoFinal);
+
+            tamanhoFinalSimulado = TamanhoFinalResponseDTO.builder()
+                    .largura(dimensoesFinais.getLarguraCm().doubleValue())
+                    .comprimento(dimensoesFinais.getComprimentoCm().doubleValue())
+                    .build();
+        }
+
+        MargensResponseDTO margensDefault = MargensResponseDTO.builder()
+                .superior(0.0)
+                .inferior(0.0)
+                .esquerda(0.0)
+                .direita(0.0)
+                .build();
+
+        SimulacaoOrdemDeCorteResponseDTO response = SimulacaoOrdemDeCorteResponseDTO.builder()
+                .tamanhoFinal(tamanhoFinalSimulado)
+                .modoCalculo(ModoCalculo.AUTOMATICO.name())
+                .margens(margensDefault)
+                .lotesDisponiveis(lotesDisponiveisDto)
+                .build();
+
+        response.add(org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo(
+                org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn(
+                        com.dcriar.api.controller.production.OrdemDeProducaoController.class)
+                        .processarOrdemDeCorte(null)
+        ).withRel("criar-ordem-de-corte"));
+
+        return response;
     }
 
     private CorteRealizadoDTO criarCorteProduto(BigDecimal larguraProduto, BigDecimal comprimentoProduto, int quantidade) {

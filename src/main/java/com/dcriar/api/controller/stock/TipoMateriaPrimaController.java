@@ -4,8 +4,11 @@ import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
 import com.dcriar.api.hateous.stock.assembler.TipoMateriaPrimaModelAssembler;
 import com.dcriar.api.hateous.stock.model.TipoMateriaPrimaModel;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.service.TipoMateriaPrimaService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,11 +16,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.hateoas.CollectionModel;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * Controller REST para o gerenciamento de Tipos de Matéria-Prima.
@@ -33,10 +40,23 @@ public class TipoMateriaPrimaController {
     private final TipoMateriaPrimaModelAssembler tipoMateriaPrimaModelAssembler;
 
     @GetMapping
-    @Operation(summary = "Listar todos os tipos de matéria-prima")
-    public ResponseEntity<CollectionModel<TipoMateriaPrimaModel>> findAll() {
-        List<TipoMateriaPrimaResponseDTO> dtos = tipoMateriaPrimaService.findAll();
-        return ResponseEntity.ok(tipoMateriaPrimaModelAssembler.toCollectionModel(dtos));
+    @Operation(summary = "Listar todos os tipos de matéria-prima com filtros e paginação")
+    @Parameters({
+            @Parameter(name = "sort", description = "Critério de ordenação no formato: propriedade,asc|desc.", example = "nome,asc")
+    })
+    public ResponseEntity<PagedModel<TipoMateriaPrimaModel>> findAll(
+            @Parameter(description = "Filtrar por parte do nome (case-insensitive)")
+            @RequestParam(required = false) String nome,
+            @Parameter(description = "Filtrar por unidade de consumo")
+            @RequestParam(required = false) UnidadeDeMedida unidadeDeConsumo,
+            @ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
+            PagedResourcesAssembler<TipoMateriaPrimaResponseDTO> pagedResourcesAssembler) {
+
+        Page<TipoMateriaPrimaResponseDTO> dtosPage = tipoMateriaPrimaService.findAll(nome, unidadeDeConsumo, pageable);
+
+        PagedModel<TipoMateriaPrimaModel> pagedModel = pagedResourcesAssembler.toModel(dtosPage, tipoMateriaPrimaModelAssembler);
+
+        return ResponseEntity.ok(pagedModel);
     }
 
     @GetMapping("/{id}")
