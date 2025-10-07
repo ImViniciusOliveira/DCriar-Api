@@ -1,11 +1,12 @@
 package com.dcriar.api.controller.product;
 
-import com.dcriar.api.hateous.product.assembler.EstoqueProdutoModelAssembler;
-import com.dcriar.api.hateous.product.assembler.MovimentacaoProdutoModelAssembler;
 import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
+import com.dcriar.api.dto.response.product.ProdutoEstoqueDTO;
+import com.dcriar.api.hateous.product.assembler.EstoqueProdutoModelAssembler;
+import com.dcriar.api.hateous.product.assembler.MovimentacaoProdutoModelAssembler;
 import com.dcriar.api.hateous.product.model.EstoqueProdutoModel;
 import com.dcriar.api.hateous.product.model.MovimentacaoProdutoModel;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
@@ -36,6 +37,12 @@ public class EstoqueProdutoController {
     private final EstoqueProdutoModelAssembler estoqueProdutoModelAssembler;
     private final MovimentacaoProdutoModelAssembler movimentacaoProdutoModelAssembler;
 
+    /**
+     * Ajusta o estoque de um produto em um canal de venda específico (distribuição).
+     *
+     * @param requestDTO DTO com os dados para o ajuste de estoque no canal.
+     * @return Um ResponseEntity com o modelo HATEOAS do estoque atualizado.
+     */
     @PostMapping("/ajustar-canal")
     @Operation(summary = "Ajustar o estoque de um produto em um canal de venda (distribuição)")
     public ResponseEntity<EstoqueProdutoModel> ajustarEstoqueCanal(@RequestBody @Valid AjusteEstoqueRequestDTO requestDTO) {
@@ -43,6 +50,13 @@ public class EstoqueProdutoController {
         return estoqueProdutoModelAssembler.toOkResponseEntity(estoqueAtualizadoDTO);
     }
 
+    /**
+     * Ajusta o estoque físico total de um produto, conhecido como "Estoque Mestre".
+     * Esta operação afeta a quantidade total disponível do produto.
+     *
+     * @param requestDTO DTO com os dados para o ajuste do estoque físico.
+     * @return Um ResponseEntity com status 204 No Content em caso de sucesso.
+     */
     @PostMapping("/ajuste-fisico")
     @Operation(summary = "Ajustar o Estoque Físico Total de um produto (o \"Estoque Mestre\")")
     @ApiResponses(value = {
@@ -55,6 +69,13 @@ public class EstoqueProdutoController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Consulta o estoque de um produto em um canal de venda específico.
+     *
+     * @param produtoId    O ID do produto a ser consultado.
+     * @param canalVendaId O ID do canal de venda.
+     * @return Um ResponseEntity com o modelo HATEOAS do estoque encontrado.
+     */
     @GetMapping
     @Operation(summary = "Consultar o estoque de um produto em um canal específico")
     public ResponseEntity<EstoqueProdutoModel> consultarEstoque(
@@ -64,13 +85,42 @@ public class EstoqueProdutoController {
         return estoqueProdutoModelAssembler.toOkResponseEntity(estoqueDTO);
     }
 
-    @GetMapping("/por-produto/{produtoId}")
-    @Operation(summary = "Listar todos os estoques de um produto em todos os canais")
-    public ResponseEntity<CollectionModel<EstoqueProdutoModel>> listarEstoquesPorProduto(@PathVariable Long produtoId) {
-        List<EstoqueResponseDTO> estoquesDTO = estoqueProdutoService.listarEstoquesPorProduto(produtoId);
-        return estoqueProdutoModelAssembler.toOkResponseEntity(estoquesDTO, produtoId);
+    /**
+     * Lista o estoque de todos os produtos, agrupados por canal de venda.
+     * Este endpoint é útil para o frontend obter uma visão geral do estoque.
+     *
+     * @return Um ResponseEntity com a lista de DTOs de estoque de produtos.
+     */
+    @GetMapping("/por-produto-canais")
+    @Operation(summary = "Listar o estoque de todos os produtos, agrupados por canal de venda")
+    public ResponseEntity<List<ProdutoEstoqueDTO>> listarEstoqueDeTodosOsProdutosPorCanal() {
+        return ResponseEntity.ok(estoqueProdutoService.listarEstoqueDeTodosOsProdutosPorCanal());
     }
 
+    /**
+     * Lista o estoque de um produto específico, agrupado por todos os seus canais de venda.
+     *
+     * @param produtoId O ID do produto a ser consultado.
+     * @return Um ResponseEntity com o DTO de estoque do produto ou 404 Not Found se não existir.
+     */
+    @GetMapping("/por-produto/{produtoId}/canais")
+    @Operation(summary = "Listar o estoque de um produto, agrupado por canal de venda")
+    public ResponseEntity<ProdutoEstoqueDTO> listarEstoquesPorProduto(@PathVariable Long produtoId) {
+        // Reutiliza o serviço que busca todos os estoques e filtra pelo produtoId desejado.
+        // Isso evita a criação de uma nova consulta no banco de dados para um caso de uso específico.
+        return estoqueProdutoService.listarEstoqueDeTodosOsProdutosPorCanal().stream()
+                .filter(p -> p.getProdutoId().equals(produtoId))
+                .findFirst()
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Consulta o histórico de movimentações do estoque físico total de um produto.
+     *
+     * @param produtoId O ID do produto para o qual o histórico será consultado.
+     * @return Um ResponseEntity com uma coleção de modelos HATEOAS das movimentações de estoque.
+     */
     @GetMapping("/fisico/por-produto/{produtoId}")
     @Operation(summary = "Consultar o histórico do Estoque Físico Total de um produto")
     @ApiResponses(value = {

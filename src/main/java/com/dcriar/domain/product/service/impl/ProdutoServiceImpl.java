@@ -11,6 +11,7 @@ import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.production.repository.OrdemDeCorteRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.product.service.ProdutoService;
+import com.dcriar.domain.upload.service.FileStorageService;
 import com.dcriar.exception.custom.ProdutoEmUsoException;
 import com.dcriar.exception.custom.ProdutoInvalidoException;
 import com.dcriar.exception.custom.ProdutoNotFoundException;
@@ -18,6 +19,7 @@ import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +29,6 @@ import java.util.stream.Collectors;
 
 /**
  * Implementação da lógica de negócio para gerenciamento de Produtos ("moldes").
- * <p>
  * Esta classe é responsável por todas as operações de CRUD e regras de negócio
  * relacionadas aos produtos, como a criação, atualização, busca e exclusão,
  * garantindo a consistência dos dados e a integridade do estoque.
@@ -42,13 +43,8 @@ public class ProdutoServiceImpl implements ProdutoService {
     private final EstoqueRepository estoqueRepository;
     private final OrdemDeCorteRepository ordemDeCorteRepository;
     private final ProdutoMapper produtoMapper;
+    private final FileStorageService fileStorageService;
 
-    /**
-     * Busca todos os produtos cadastrados no sistema.
-     * Para cada produto, calcula e enriquece o DTO de resposta com informações de estoque.
-     *
-     * @return Uma lista de {@link ProdutoResponseDTO} contendo todos os produtos com seus saldos de estoque.
-     */
     @Override
     @Transactional(readOnly = true)
     public List<ProdutoResponseDTO> findAll() {
@@ -57,14 +53,6 @@ public class ProdutoServiceImpl implements ProdutoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Busca um produto específico pelo seu ID.
-     * Calcula e enriquece o DTO de resposta com informações de estoque.
-     *
-     * @param id O ID do produto a ser buscado.
-     * @return O {@link ProdutoResponseDTO} do produto encontrado com seus saldos de estoque.
-     * @throws ProdutoNotFoundException se o produto com o ID especificado não for encontrado.
-     */
     @Override
     @Transactional(readOnly = true)
     public ProdutoResponseDTO findById(Long id) {
@@ -72,17 +60,6 @@ public class ProdutoServiceImpl implements ProdutoService {
         return mapAndEnrichProduto(produto);
     }
 
-    /**
-     * Cria um novo produto no sistema.
-     * <p>
-     * Realiza validações de negócio para garantir a unicidade do nome e SKU.
-     * Associa o produto a um tipo de matéria-prima existente.
-     *
-     * @param requestDTO O DTO com os dados para a criação do produto.
-     * @return O {@link ProdutoResponseDTO} do produto recém-criado com seus saldos de estoque.
-     * @throws ProdutoInvalidoException se houver erros de validação de negócio (nome/SKU duplicados).
-     * @throws TipoMateriaPrimaNotFoundException se o tipo de matéria-prima especificado não for encontrado.
-     */
     @Override
     @Transactional
     public ProdutoResponseDTO create(ProdutoRequestDTO requestDTO) {
@@ -94,27 +71,21 @@ public class ProdutoServiceImpl implements ProdutoService {
         Produto produto = Produto.from(requestDTO);
         produto.setTipoMateriaPrima(tipoMateriaPrima);
 
+        // Garante que apenas o nome do arquivo seja salvo no banco de dados.
+        if (produto.getFotoPrincipalUrl() != null && !produto.getFotoPrincipalUrl().isBlank()) {
+            String fileName = fileStorageService.extractFileName(produto.getFotoPrincipalUrl());
+            produto.setFotoPrincipalUrl(fileName);
+        }
+
         Produto produtoSalvo = produtoRepository.save(produto);
         return mapAndEnrichProduto(produtoSalvo);
     }
 
-    /**
-     * Atualiza um produto existente pelo seu ID.
-     * <p>
-     * Realiza validações de negócio para garantir a unicidade do nome e SKU, excluindo o próprio produto.
-     * Associa o produto a um tipo de matéria-prima existente.
-     *
-     * @param id O ID do produto a ser atualizado.
-     * @param requestDTO O DTO com os novos dados para atualização.
-     * @return O {@link ProdutoResponseDTO} do produto atualizado com seus saldos de estoque.
-     * @throws ProdutoNotFoundException se o produto com o ID especificado não for encontrado.
-     * @throws ProdutoInvalidoException se houver erros de validação de negócio (nome/SKU duplicados).
-     * @throws TipoMateriaPrimaNotFoundException se o tipo de matéria-prima especificado não for encontrado.
-     */
     @Override
     @Transactional
     public ProdutoResponseDTO update(Long id, ProdutoRequestDTO requestDTO) {
         Produto produto = findProdutoById(id);
+        String oldFotoFileName = produto.getFotoPrincipalUrl(); // Armazena o nome do arquivo antigo.
 
         validarRegrasDeNegocio(requestDTO, id);
 
@@ -124,19 +95,31 @@ public class ProdutoServiceImpl implements ProdutoService {
         produto.updateFrom(requestDTO);
         produto.setTipoMateriaPrima(tipoMateriaPrima);
 
+        // Lógica para gerenciamento inteligente de imagens.
+        String newFotoUrlFromDto = requestDTO.getFotoPrincipalUrl();
+
+        if (newFotoUrlFromDto != null && !newFotoUrlFromDto.isBlank()) {
+            // Se uma nova URL de imagem foi enviada, extrai apenas o nome do arquivo.
+            String newFileName = fileStorageService.extractFileName(newFotoUrlFromDto);
+
+            // Se o nome do arquivo novo for diferente do antigo, exclui o arquivo antigo.
+            if (oldFotoFileName != null && !oldFotoFileName.equals(newFileName)) {
+                fileStorageService.deleteFile(oldFotoFileName);
+            }
+            // Salva apenas o nome do novo arquivo no banco de dados.
+            produto.setFotoPrincipalUrl(newFileName);
+        } else {
+            // Se a URL da imagem no DTO for nula ou em branco, significa que a imagem deve ser removida.
+            if (oldFotoFileName != null && !oldFotoFileName.isBlank()) {
+                fileStorageService.deleteFile(oldFotoFileName);
+            }
+            produto.setFotoPrincipalUrl(null); // Remove a referência no banco de dados.
+        }
+
         Produto produtoAtualizado = produtoRepository.save(produto);
         return mapAndEnrichProduto(produtoAtualizado);
     }
 
-    /**
-     * Deleta um produto pelo seu ID.
-     * <p>
-     * Antes de deletar, verifica se o produto não está em uso em nenhuma ordem de corte.
-     *
-     * @param id O ID do produto a ser deletado.
-     * @throws ProdutoNotFoundException se o produto com o ID especificado não for encontrado.
-     * @throws ProdutoEmUsoException se o produto estiver em uso em uma ou mais ordens de corte.
-     */
     @Override
     @Transactional
     public void deleteById(Long id) {
@@ -148,21 +131,30 @@ public class ProdutoServiceImpl implements ProdutoService {
             throw new ProdutoEmUsoException(id, ordemIds);
         }
 
+        // Exclui a imagem associada ao produto, se houver.
+        if (produto.getFotoPrincipalUrl() != null && !produto.getFotoPrincipalUrl().isBlank()) {
+            fileStorageService.deleteFile(produto.getFotoPrincipalUrl());
+        }
+
         produtoRepository.delete(produto);
     }
 
     /**
      * Mapeia uma entidade {@link Produto} para um {@link ProdutoResponseDTO} e enriquece
-     * o DTO com informações de estoque calculadas dinamicamente.
-     * <p>
-     * Calcula o estoque físico total, o estoque distribuído entre os canais e o estoque
-     * disponível para alocação.
-     *
-     * @param produto A entidade {@link Produto} a ser mapeada e enriquecida.
-     * @return Um {@link ProdutoResponseDTO} com os dados do produto e informações de estoque.
+     * o DTO com informações de estoque e a URL completa da imagem.
      */
     private ProdutoResponseDTO mapAndEnrichProduto(Produto produto) {
         ProdutoResponseDTO dto = produtoMapper.toResponseDTO(produto);
+
+        // Constrói a URL de download completa da imagem dinamicamente.
+        if (dto.getFotoPrincipalUrl() != null && !dto.getFotoPrincipalUrl().isBlank()) {
+            String fileName = dto.getFotoPrincipalUrl(); // Contém apenas o nome do arquivo.
+            String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/uploads/")
+                    .path(fileName)
+                    .toUriString();
+            dto.setFotoPrincipalUrl(fileDownloadUri);
+        }
 
         Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
         List<Estoque> estoquesAtuais = estoqueRepository.findAllByProduto(produto);
@@ -178,28 +170,11 @@ public class ProdutoServiceImpl implements ProdutoService {
         return dto;
     }
 
-    /**
-     * Busca uma entidade {@link Produto} pelo seu ID.
-     * Método auxiliar para evitar duplicação de código e centralizar o tratamento de "não encontrado".
-     *
-     * @param id O ID do produto a ser buscado.
-     * @return A entidade {@link Produto} encontrada.
-     * @throws ProdutoNotFoundException se o produto com o ID especificado não for encontrado.
-     */
     private Produto findProdutoById(Long id) {
         return produtoRepository.findById(id)
                 .orElseThrow(() -> new ProdutoNotFoundException(id));
     }
 
-    /**
-     * Valida as regras de negócio para a criação ou atualização de um produto.
-     * <p>
-     * Verifica a unicidade do nome e do SKU, considerando se é uma operação de criação ou atualização.
-     *
-     * @param requestDTO O DTO de requisição do produto.
-     * @param produtoId O ID do produto, se for uma operação de atualização (nulo para criação).
-     * @throws ProdutoInvalidoException se houver erros de validação de negócio.
-     */
     private void validarRegrasDeNegocio(ProdutoRequestDTO requestDTO, Long produtoId) {
         Map<String, String> errors = new HashMap<>();
 
