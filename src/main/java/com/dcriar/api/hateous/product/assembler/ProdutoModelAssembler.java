@@ -32,7 +32,7 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
         ProdutoModel model = mapper.toModel(dto);
 
         model.add(linkTo(methodOn(ProdutoController.class).findById(dto.getId())).withSelfRel());
-        model.add(linkTo(methodOn(ProdutoController.class).findAll()).withRel("produtos"));
+        model.add(linkTo(methodOn(ProdutoController.class).findAll(null, null)).withRel("produtos"));
         model.add(linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorProduto(dto.getId())).withRel("estoques-do-produto"));
         model.add(linkTo(methodOn(EstoqueProdutoController.class).listarMovimentacoesPorProduto(dto.getId())).withRel("historico-movimentacoes"));
         model.add(linkTo(methodOn(ProdutoController.class).update(dto.getId(), null)).withRel("atualizar-produto"));

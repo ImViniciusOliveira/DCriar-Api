@@ -17,6 +17,8 @@ import com.dcriar.exception.custom.ProdutoInvalidoException;
 import com.dcriar.exception.custom.ProdutoNotFoundException;
 import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -27,12 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Implementação da lógica de negócio para gerenciamento de Produtos ("moldes").
- * Esta classe é responsável por todas as operações de CRUD e regras de negócio
- * relacionadas aos produtos, como a criação, atualização, busca e exclusão,
- * garantindo a consistência dos dados e a integridade do estoque.
- */
 @Service
 @RequiredArgsConstructor
 public class ProdutoServiceImpl implements ProdutoService {
@@ -47,10 +43,9 @@ public class ProdutoServiceImpl implements ProdutoService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProdutoResponseDTO> findAll() {
-        return produtoRepository.findAll().stream()
-                .map(this::mapAndEnrichProduto)
-                .collect(Collectors.toList());
+    public Page<ProdutoResponseDTO> findAll(Pageable pageable) {
+        Page<Produto> produtoPage = produtoRepository.findAll(pageable);
+        return produtoPage.map(this::mapAndEnrichProduto);
     }
 
     @Override
@@ -71,7 +66,6 @@ public class ProdutoServiceImpl implements ProdutoService {
         Produto produto = Produto.from(requestDTO);
         produto.setTipoMateriaPrima(tipoMateriaPrima);
 
-        // Garante que apenas o nome do arquivo seja salvo no banco de dados.
         if (produto.getFotoPrincipalUrl() != null && !produto.getFotoPrincipalUrl().isBlank()) {
             String fileName = fileStorageService.extractFileName(produto.getFotoPrincipalUrl());
             produto.setFotoPrincipalUrl(fileName);
@@ -85,7 +79,7 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Transactional
     public ProdutoResponseDTO update(Long id, ProdutoRequestDTO requestDTO) {
         Produto produto = findProdutoById(id);
-        String oldFotoFileName = produto.getFotoPrincipalUrl(); // Armazena o nome do arquivo antigo.
+        String oldFotoFileName = produto.getFotoPrincipalUrl();
 
         validarRegrasDeNegocio(requestDTO, id);
 
@@ -95,25 +89,20 @@ public class ProdutoServiceImpl implements ProdutoService {
         produto.updateFrom(requestDTO);
         produto.setTipoMateriaPrima(tipoMateriaPrima);
 
-        // Lógica para gerenciamento inteligente de imagens.
         String newFotoUrlFromDto = requestDTO.getFotoPrincipalUrl();
 
         if (newFotoUrlFromDto != null && !newFotoUrlFromDto.isBlank()) {
-            // Se uma nova URL de imagem foi enviada, extrai apenas o nome do arquivo.
             String newFileName = fileStorageService.extractFileName(newFotoUrlFromDto);
 
-            // Se o nome do arquivo novo for diferente do antigo, exclui o arquivo antigo.
             if (oldFotoFileName != null && !oldFotoFileName.equals(newFileName)) {
                 fileStorageService.deleteFile(oldFotoFileName);
             }
-            // Salva apenas o nome do novo arquivo no banco de dados.
             produto.setFotoPrincipalUrl(newFileName);
         } else {
-            // Se a URL da imagem no DTO for nula ou em branco, significa que a imagem deve ser removida.
             if (oldFotoFileName != null && !oldFotoFileName.isBlank()) {
                 fileStorageService.deleteFile(oldFotoFileName);
             }
-            produto.setFotoPrincipalUrl(null); // Remove a referência no banco de dados.
+            produto.setFotoPrincipalUrl(null);
         }
 
         Produto produtoAtualizado = produtoRepository.save(produto);
@@ -131,7 +120,6 @@ public class ProdutoServiceImpl implements ProdutoService {
             throw new ProdutoEmUsoException(id, ordemIds);
         }
 
-        // Exclui a imagem associada ao produto, se houver.
         if (produto.getFotoPrincipalUrl() != null && !produto.getFotoPrincipalUrl().isBlank()) {
             fileStorageService.deleteFile(produto.getFotoPrincipalUrl());
         }
@@ -139,16 +127,11 @@ public class ProdutoServiceImpl implements ProdutoService {
         produtoRepository.delete(produto);
     }
 
-    /**
-     * Mapeia uma entidade {@link Produto} para um {@link ProdutoResponseDTO} e enriquece
-     * o DTO com informações de estoque e a URL completa da imagem.
-     */
     private ProdutoResponseDTO mapAndEnrichProduto(Produto produto) {
         ProdutoResponseDTO dto = produtoMapper.toResponseDTO(produto);
 
-        // Constrói a URL de download completa da imagem dinamicamente.
         if (dto.getFotoPrincipalUrl() != null && !dto.getFotoPrincipalUrl().isBlank()) {
-            String fileName = dto.getFotoPrincipalUrl(); // Contém apenas o nome do arquivo.
+            String fileName = dto.getFotoPrincipalUrl();
             String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/api/v1/uploads/")
                     .path(fileName)
@@ -178,14 +161,14 @@ public class ProdutoServiceImpl implements ProdutoService {
     private void validarRegrasDeNegocio(ProdutoRequestDTO requestDTO, Long produtoId) {
         Map<String, String> errors = new HashMap<>();
 
-        if (produtoId == null) { // Operação de criação
+        if (produtoId == null) {
             if (produtoRepository.existsByNome(requestDTO.getNome())) {
                 errors.put("nome", String.format("Já existe um produto com o nome '%s'.", requestDTO.getNome()));
             }
             if (produtoRepository.existsBySku(requestDTO.getSku())) {
                 errors.put("sku", String.format("Já existe um produto com o SKU '%s'.", requestDTO.getSku()));
             }
-        } else { // Operação de atualização
+        } else {
             if (produtoRepository.existsByNomeAndIdNot(requestDTO.getNome(), produtoId)) {
                 errors.put("nome", String.format("Já existe outro produto com o nome '%s'.", requestDTO.getNome()));
             }

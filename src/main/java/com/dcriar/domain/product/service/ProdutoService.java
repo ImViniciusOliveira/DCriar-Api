@@ -2,23 +2,23 @@ package com.dcriar.domain.product.service;
 
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Interface que define o contrato para a lógica de negócio de Produtos.
- * <p>
  * Desacopla o controller da implementação do serviço, permitindo maior flexibilidade
  * e facilitando os testes.
  */
 public interface ProdutoService {
 
     /**
-     * Busca todos os produtos cadastrados.
+     * Busca todos os produtos cadastrados de forma paginada.
      *
-     * @return Uma lista de DTOs de resposta de produtos.
+     * @param pageable Objeto com as informações de paginação (página, tamanho, ordenação).
+     * @return Uma página de DTOs de resposta de produtos.
      */
-    List<ProdutoResponseDTO> findAll();
+    Page<ProdutoResponseDTO> findAll(Pageable pageable);
 
     /**
      * Busca um produto específico pelo seu ID.
@@ -52,4 +52,3 @@ public interface ProdutoService {
      */
     void deleteById(Long id);
 }
-

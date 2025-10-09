@@ -13,17 +13,21 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.hateoas.CollectionModel;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * Controller responsável por expor os endpoints da API para o recurso de Produto.
  */
 @RestController
-@RequestMapping("/api/v1/products")
+@RequestMapping("/api/v1/produtos")
 @RequiredArgsConstructor
 @Tag(name = "Produtos", description = "Endpoints para gerenciamento de produtos")
 public class ProdutoController {
@@ -32,11 +36,11 @@ public class ProdutoController {
     private final ProdutoModelAssembler produtoModelAssembler;
 
     @GetMapping
-    @Operation(summary = "Listar todos os produtos")
+    @Operation(summary = "Listar todos os produtos de forma paginada")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
-    public CollectionModel<ProdutoModel> findAll() {
-        List<ProdutoResponseDTO> produtos = produtoService.findAll();
-        return produtoModelAssembler.toCollectionModel(produtos);
+    public PagedModel<ProdutoModel> findAll(@ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable, PagedResourcesAssembler<ProdutoResponseDTO> pagedResourcesAssembler) {
+        Page<ProdutoResponseDTO> produtosPage = produtoService.findAll(pageable);
+        return pagedResourcesAssembler.toModel(produtosPage, produtoModelAssembler);
     }
 
     @GetMapping("/{id}")
