@@ -43,6 +43,14 @@ public class ProdutoController {
         return pagedResourcesAssembler.toModel(produtosPage, produtoModelAssembler);
     }
 
+    /**
+     * Método de sobrecarga para a construção de links HATEOAS.
+     * Não é um endpoint e não deve ser chamado diretamente.
+     */
+    public PagedModel<ProdutoModel> findAll() {
+        return null;
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar produto por ID")
     @ApiResponses(value = {
