@@ -67,6 +67,12 @@ public class ProdutoResponseDTO {
     private String fotoPrincipalUrl;
 
     /**
+     * A matéria-prima principal utilizada no produto.
+     */
+    @Schema(description = "A matéria-prima principal utilizada no produto.")
+    private MateriaPrimaResponseDTO materiaPrima;
+
+    /**
      * A quantidade total de unidades do produto no estoque físico (Estoque Mestre).
      * <p>
      * Representa o total de unidades produzidas e disponíveis.

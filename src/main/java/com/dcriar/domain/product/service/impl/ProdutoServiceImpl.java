@@ -72,7 +72,10 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
 
         Produto produtoSalvo = produtoRepository.save(produto);
-        return mapAndEnrichProduto(produtoSalvo);
+
+        // Re-busca a entidade para garantir que a resposta da API retorne o estado completo,
+        // incluindo as associações carregadas pelo EntityGraph do método findById.
+        return findById(produtoSalvo.getId());
     }
 
     @Override
@@ -105,8 +108,11 @@ public class ProdutoServiceImpl implements ProdutoService {
             produto.setFotoPrincipalUrl(null);
         }
 
-        Produto produtoAtualizado = produtoRepository.save(produto);
-        return mapAndEnrichProduto(produtoAtualizado);
+        produtoRepository.save(produto);
+
+        // Re-busca a entidade para garantir que a resposta da API retorne o estado completo,
+        // incluindo as associações carregadas pelo EntityGraph do método findById.
+        return findById(id);
     }
 
     @Override

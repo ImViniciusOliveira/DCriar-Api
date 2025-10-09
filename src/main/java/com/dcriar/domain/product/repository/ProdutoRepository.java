@@ -1,8 +1,14 @@
 package com.dcriar.domain.product.repository;
 
 import com.dcriar.domain.product.entity.Produto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
 
 /**
  * Interface de repositório para a entidade {@link Produto}.
@@ -12,6 +18,30 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface ProdutoRepository extends JpaRepository<Produto, Long> {
+
+    /**
+     * Busca todos os produtos, garantindo que a associação com {@link com.dcriar.domain.stock.entity.TipoMateriaPrima}
+     * seja carregada de forma otimizada (EAGER) nesta consulta específica, evitando o problema N+1.
+     *
+     * @param pageable Objeto com as informações de paginação (não pode ser nulo).
+     * @return Uma página de produtos (nunca nula).
+     */
+    @Override
+    @NonNull
+    @EntityGraph(attributePaths = {"tipoMateriaPrima"})
+    Page<Produto> findAll(@NonNull Pageable pageable);
+
+    /**
+     * Busca um produto pelo seu ID, garantindo que a associação com {@link com.dcriar.domain.stock.entity.TipoMateriaPrima}
+     * seja carregada de forma otimizada (EAGER) nesta consulta específica.
+     *
+     * @param id O ID do produto (não pode ser nulo).
+     * @return Um {@link Optional} contendo o produto, se encontrado (nunca nulo).
+     */
+    @Override
+    @NonNull
+    @EntityGraph(attributePaths = {"tipoMateriaPrima"})
+    Optional<Produto> findById(@NonNull Long id);
 
     /**
      * Verifica se já existe um produto com o nome especificado.

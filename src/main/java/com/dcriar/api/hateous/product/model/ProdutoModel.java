@@ -1,6 +1,7 @@
 package com.dcriar.api.hateous.product.model;
 
 import com.dcriar.api.dto.response.product.DimensoesResponseDTO;
+import com.dcriar.api.dto.response.product.MateriaPrimaResponseDTO;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -51,6 +52,9 @@ public class ProdutoModel extends RepresentationModel<ProdutoModel> {
 
     @Schema(description = "URL da imagem principal do produto.")
     private String fotoPrincipalUrl;
+
+    @Schema(description = "A matéria-prima principal utilizada no produto.")
+    private MateriaPrimaResponseDTO materiaPrima;
 
     @Schema(description = "Quantidade total em estoque (Estoque Mestre).", example = "150")
     private Integer estoqueFisicoTotal;
