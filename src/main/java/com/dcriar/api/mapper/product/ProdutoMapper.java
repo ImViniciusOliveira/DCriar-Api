@@ -1,5 +1,6 @@
 package com.dcriar.api.mapper.product;
 
+import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.hateous.product.model.ProdutoModel;
 import com.dcriar.domain.product.entity.Produto;
@@ -8,9 +9,9 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 
 /**
- * Interface MapStruct para mapear a entidade {@link Produto} para seus DTOs.
+ * Interface MapStruct para mapear a entidade {@link Produto} para seus DTOs e Models.
  */
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = {DimensoesMapper.class, MateriaPrimaMapper.class})
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = DimensoesMapper.class)
 public interface ProdutoMapper {
 
     /**
@@ -28,4 +29,16 @@ public interface ProdutoMapper {
      * Converte um DTO de resposta para o modelo de representação HATEOAS.
      */
     ProdutoModel toModel(ProdutoResponseDTO responseDTO);
+
+    /**
+     * Converte um DTO de resposta de volta para um DTO de requisição.
+     * Essencial para a implementação do método PATCH, permitindo mesclar
+     * as alterações parciais sobre o estado atual do recurso antes da validação.
+     *
+     * @param responseDTO O DTO de resposta representando o estado atual do produto.
+     * @return Um DTO de requisição pronto para ser mesclado e validado.
+     */
+    @Mapping(source = "materiaPrima.id", target = "tipoMateriaPrimaId")
+    @Mapping(source = "dimensoes", target = "dimensoesUnitarias")
+    ProdutoRequestDTO toRequestDTO(ProdutoResponseDTO responseDTO);
 }

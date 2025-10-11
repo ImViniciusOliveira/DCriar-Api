@@ -5,6 +5,8 @@ import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Map;
+
 /**
  * Interface que define o contrato para a lógica de negócio de Produtos.
  * Desacopla o controller da implementação do serviço, permitindo maior flexibilidade
@@ -37,13 +39,22 @@ public interface ProdutoService {
     ProdutoResponseDTO create(ProdutoRequestDTO requestDTO);
 
     /**
-     * Atualiza um produto existente.
+     * Atualiza um produto existente a partir de um DTO completo.
      *
      * @param id O ID do produto a ser atualizado.
      * @param requestDTO O DTO com os novos dados.
      * @return O DTO de resposta do produto atualizado.
      */
     ProdutoResponseDTO update(Long id, ProdutoRequestDTO requestDTO);
+
+    /**
+     * Atualiza parcialmente um produto existente a partir de um mapa de campos.
+     *
+     * @param id O ID do produto a ser atualizado.
+     * @param fields Um mapa contendo os nomes dos campos e seus novos valores.
+     * @return O DTO de resposta do produto atualizado.
+     */
+    ProdutoResponseDTO patch(Long id, Map<String, Object> fields);
 
     /**
      * Deleta um produto pelo seu ID.

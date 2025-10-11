@@ -178,6 +178,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Trata exceções internas relacionadas ao processo de mesclagem de JSON em operações PATCH.
+     * Retorna HTTP 500, pois este é um erro inesperado do lado do servidor.
+     *
+     * @param ex A exceção {@link JsonMergeException} lançada.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 500.
+     */
+    @ExceptionHandler(JsonMergeException.class)
+    public ResponseEntity<ErrorDTO> handleJsonMergeException(JsonMergeException ex) {
+        log.error("Falha ao mesclar JSON para operação PATCH: ", ex);
+        String msg = "Ocorreu um erro interno ao processar a atualização. A estrutura dos dados enviados pode ser inválida.";
+        return buildErrorResponse(msg, HttpStatus.INTERNAL_SERVER_ERROR, Map.of("detalhe", ex.getMessage()));
+    }
+
+    /**
      * Handler genérico para qualquer outra exceção não tratada (HTTP 500 Internal Server Error).
      * Registra a exceção e retorna uma mensagem de erro genérica para o cliente.
      *

@@ -12,10 +12,12 @@ import com.dcriar.domain.production.repository.OrdemDeCorteRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.product.service.ProdutoService;
 import com.dcriar.domain.upload.service.FileStorageService;
-import com.dcriar.exception.custom.ProdutoEmUsoException;
-import com.dcriar.exception.custom.ProdutoInvalidoException;
-import com.dcriar.exception.custom.ProdutoNotFoundException;
-import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
+import com.dcriar.exception.custom.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +42,8 @@ public class ProdutoServiceImpl implements ProdutoService {
     private final OrdemDeCorteRepository ordemDeCorteRepository;
     private final ProdutoMapper produtoMapper;
     private final FileStorageService fileStorageService;
+    private final ObjectMapper objectMapper;
+    private final Validator validator;
 
     @Override
     @Transactional(readOnly = true)
@@ -73,8 +77,6 @@ public class ProdutoServiceImpl implements ProdutoService {
 
         Produto produtoSalvo = produtoRepository.save(produto);
 
-        // Re-busca a entidade para garantir que a resposta da API retorne o estado completo,
-        // incluindo as associações carregadas pelo EntityGraph do método findById.
         return findById(produtoSalvo.getId());
     }
 
@@ -110,9 +112,34 @@ public class ProdutoServiceImpl implements ProdutoService {
 
         produtoRepository.save(produto);
 
-        // Re-busca a entidade para garantir que a resposta da API retorne o estado completo,
-        // incluindo as associações carregadas pelo EntityGraph do método findById.
         return findById(id);
+    }
+
+    @Override
+    @Transactional
+    public ProdutoResponseDTO patch(Long id, Map<String, Object> fields) {
+        // 1. Buscar (Fetch): Carrega o estado atual do produto.
+        ProdutoResponseDTO produtoAtual = findById(id);
+
+        // 2. Mapear para DTO de Requisição: Converte o estado atual para um DTO que pode ser mesclado e validado.
+        ProdutoRequestDTO produtoRequestDTO = produtoMapper.toRequestDTO(produtoAtual);
+
+        // 3. Mesclar (Merge): Aplica as alterações parciais usando o padrão readerForUpdating.
+        try {
+            String patchJson = objectMapper.writeValueAsString(fields);
+            objectMapper.readerForUpdating(produtoRequestDTO).readValue(patchJson);
+        } catch (JsonProcessingException e) {
+            throw new JsonMergeException("Erro ao processar a atualização parcial do produto.", e);
+        }
+
+        // 4. Validar (Validate): Valida o DTO mesclado para garantir que o estado final é válido.
+        Set<ConstraintViolation<ProdutoRequestDTO>> violations = validator.validate(produtoRequestDTO);
+        if (!violations.isEmpty()) {
+            throw new ConstraintViolationException(violations);
+        }
+
+        // 5. Executar (Execute): Envia o DTO completo e validado para o serviço de atualização.
+        return update(id, produtoRequestDTO);
     }
 
     @Override
