@@ -1,7 +1,7 @@
 package com.dcriar.domain.production.service;
 
 import com.dcriar.api.dto.request.production.MargensRequestDTO;
-import com.dcriar.api.dto.response.production.CorteRealizadoDTO;
+import com.dcriar.domain.product.entity.Dimensoes;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.production.model.ParametrosCorte;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -64,20 +63,17 @@ public class CorteCalculatorService {
         return comprimentoFinal;
     }
 
-    public BigDecimal calcularConsumoTotalMetros(List<CorteRealizadoDTO> cortesRealizados) {
-        BigDecimal consumoTotalMetros = BigDecimal.ZERO;
-        if (cortesRealizados == null) {
-            return consumoTotalMetros;
+    /**
+     * Calcula o consumo total de matéria-prima em metros lineares, com base nas dimensões finais do corte.
+     * @param dimensoesFinais As dimensões finais do material a ser consumido.
+     * @return O consumo total em metros.
+     */
+    public BigDecimal calcularConsumoTotal(Dimensoes dimensoesFinais) {
+        if (dimensoesFinais == null || dimensoesFinais.getComprimentoCm() == null) {
+            return BigDecimal.ZERO;
         }
-        for (CorteRealizadoDTO corte : cortesRealizados) {
-            if ("PRODUTO".equals(corte.getTipo()) || "RETALHO".equals(corte.getTipo())) {
-                BigDecimal comprimentoEmMetros = corte.getComprimentoCm().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
-                consumoTotalMetros = consumoTotalMetros.add(
-                    comprimentoEmMetros.multiply(new BigDecimal(corte.getQuantidade()))
-                );
-            }
-        }
-        return consumoTotalMetros;
+        // Converte o comprimento de centímetros para metros
+        return dimensoesFinais.getComprimentoCm().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
     }
 
     private BigDecimal getLarguraEmCm(Map<String, Object> atributos) {

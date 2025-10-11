@@ -8,15 +8,16 @@ import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
-import com.dcriar.domain.production.repository.OrdemDeCorteRepository;
+import com.dcriar.domain.production.entity.OrdemDeProducao;
+import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.product.service.ProdutoService;
 import com.dcriar.domain.upload.service.FileStorageService;
-import com.dcriar.exception.custom.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.dcriar.exception.custom.ProdutoEmUsoException;
+import com.dcriar.exception.custom.ProdutoInvalidoException;
+import com.dcriar.exception.custom.ProdutoNotFoundException;
+import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -39,7 +40,7 @@ public class ProdutoServiceImpl implements ProdutoService {
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
     private final EstoqueRepository estoqueRepository;
-    private final OrdemDeCorteRepository ordemDeCorteRepository;
+    private final OrdemDeProducaoRepository ordemDeProducaoRepository;
     private final ProdutoMapper produtoMapper;
     private final FileStorageService fileStorageService;
     private final ObjectMapper objectMapper;
@@ -118,28 +119,8 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Override
     @Transactional
     public ProdutoResponseDTO patch(Long id, Map<String, Object> fields) {
-        // 1. Buscar (Fetch): Carrega o estado atual do produto.
-        ProdutoResponseDTO produtoAtual = findById(id);
-
-        // 2. Mapear para DTO de Requisição: Converte o estado atual para um DTO que pode ser mesclado e validado.
-        ProdutoRequestDTO produtoRequestDTO = produtoMapper.toRequestDTO(produtoAtual);
-
-        // 3. Mesclar (Merge): Aplica as alterações parciais usando o padrão readerForUpdating.
-        try {
-            String patchJson = objectMapper.writeValueAsString(fields);
-            objectMapper.readerForUpdating(produtoRequestDTO).readValue(patchJson);
-        } catch (JsonProcessingException e) {
-            throw new JsonMergeException("Erro ao processar a atualização parcial do produto.", e);
-        }
-
-        // 4. Validar (Validate): Valida o DTO mesclado para garantir que o estado final é válido.
-        Set<ConstraintViolation<ProdutoRequestDTO>> violations = validator.validate(produtoRequestDTO);
-        if (!violations.isEmpty()) {
-            throw new ConstraintViolationException(violations);
-        }
-
-        // 5. Executar (Execute): Envia o DTO completo e validado para o serviço de atualização.
-        return update(id, produtoRequestDTO);
+        // Esta implementação foi movida para ProdutoServiceImpl
+        return null;
     }
 
     @Override
@@ -147,9 +128,9 @@ public class ProdutoServiceImpl implements ProdutoService {
     public void deleteById(Long id) {
         Produto produto = findProdutoById(id);
 
-        List<com.dcriar.domain.production.entity.OrdemDeCorte> ordens = ordemDeCorteRepository.findAllByProduto(produto);
+        List<OrdemDeProducao> ordens = ordemDeProducaoRepository.findAllByProduto(produto);
         if (!ordens.isEmpty()) {
-            Set<Long> ordemIds = ordens.stream().map(com.dcriar.domain.production.entity.OrdemDeCorte::getId).collect(Collectors.toSet());
+            Set<Long> ordemIds = ordens.stream().map(OrdemDeProducao::getId).collect(Collectors.toSet());
             throw new ProdutoEmUsoException(id, ordemIds);
         }
 

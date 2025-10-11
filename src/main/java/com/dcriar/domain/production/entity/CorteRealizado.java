@@ -6,10 +6,11 @@ import lombok.*;
 import java.math.BigDecimal;
 
 /**
- * Representa um corte específico realizado como parte de uma {@link OrdemDeCorte}.
+ * Representa um corte específico realizado como parte de uma {@link OrdemDeProducao}.
  * <p>
  * Cada instância registra as dimensões e a quantidade de peças cortadas,
  * especificando se o corte resultou em um produto final ou em um retalho (sobra de material).
+ * Este conceito é aplicável apenas a produções do tipo 'Corte'.
  */
 @Entity
 @Table(name = "cortes_realizados")
@@ -30,11 +31,11 @@ public class CorteRealizado {
     private Long id;
 
     /**
-     * A ordem de corte à qual este corte está associado.
+     * A ordem de produção à qual este corte está associado.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordem_de_corte_id", nullable = false)
-    private OrdemDeCorte ordemDeCorte;
+    @JoinColumn(name = "ordem_de_producao_id", nullable = false)
+    private OrdemDeProducao ordemDeProducao;
 
     /**
      * A largura do corte em centímetros.

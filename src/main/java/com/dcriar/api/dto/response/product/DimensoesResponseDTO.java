@@ -9,7 +9,7 @@ import java.math.BigDecimal;
  * Data Transfer Object (DTO) que representa as dimensões de um produto.
  * <p>
  * Este DTO é usado para comunicar as dimensões físicas (largura e comprimento)
- * de um item, geralmente em centímetros.
+ * de um item, sempre em centímetros.
  */
 @Getter
 @Setter
@@ -22,11 +22,11 @@ public class DimensoesResponseDTO {
      * A largura unitária do item em centímetros.
      */
     @Schema(description = "Largura unitária do item em centímetros.", example = "20.0")
-    private BigDecimal largura;
+    private BigDecimal larguraCm;
 
     /**
      * O comprimento unitário do item em centímetros.
      */
     @Schema(description = "Comprimento unitário do item em centímetros.", example = "30.0")
-    private BigDecimal comprimento;
+    private BigDecimal comprimentoCm;
 }

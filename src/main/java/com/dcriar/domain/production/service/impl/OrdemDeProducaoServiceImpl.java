@@ -1,23 +1,23 @@
 package com.dcriar.domain.production.service.impl;
 
-import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
+import com.dcriar.api.dto.request.production.OrdemDeConsumoDiretoRequestDTO;
 import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
-import com.dcriar.api.dto.request.production.SimulacaoOrdemDeCorteRequestDTO;
-import com.dcriar.api.dto.response.production.*;
-import com.dcriar.api.mapper.production.OrdemDeCorteMapper;
+import com.dcriar.api.dto.request.production.SimulacaoConsumoDiretoRequestDTO;
+import com.dcriar.api.dto.request.production.SimulacaoCorteRequestDTO;
+import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
+import com.dcriar.api.dto.response.production.SimulacaoConsumoDiretoResponseDTO;
+import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
+import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
 import com.dcriar.domain.product.entity.Dimensoes;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
-import com.dcriar.domain.product.service.EstoqueProdutoService;
-import com.dcriar.domain.production.entity.CorteRealizado;
-import com.dcriar.domain.production.entity.Margens;
-import com.dcriar.domain.production.entity.OrdemDeCorte;
+import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.dcriar.domain.production.model.ParametrosCorte;
-import com.dcriar.domain.production.repository.OrdemDeCorteRepository;
+import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
 import com.dcriar.domain.production.service.CorteCalculatorService;
 import com.dcriar.domain.production.service.OrdemDeProducaoService;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
@@ -34,374 +34,205 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Implementação do serviço para gerenciar Ordens de Produção (Corte).
- * <p>
- * Esta classe orquestra a lógica de negócio para criar, buscar, listar e excluir ordens de corte,
- * interagindo com repositórios, serviços de cálculo e outros componentes do domínio.
- */
 @Service
 @RequiredArgsConstructor
 public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
+    private final OrdemDeProducaoRepository ordemDeProducaoRepository;
+    private final ProdutoRepository produtoRepository;
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
-    private final ProdutoRepository produtoRepository;
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
-    private final EstoqueProdutoService estoqueProdutoService;
-    private final OrdemDeCorteRepository ordemDeCorteRepository;
-    private final OrdemDeCorteMapper ordemDeCorteMapper;
+    private final OrdemDeProducaoMapper ordemDeProducaoMapper;
     private final CorteCalculatorService corteCalculatorService;
 
-    /**
-     * Processa e cria uma nova Ordem de Corte com base nos dados fornecidos.
-     *
-     * @param requestDTO O DTO contendo os detalhes da ordem de corte a ser criada.
-     * @return Um DTO com os detalhes da ordem de corte que foi criada e salva.
-     * @throws RegraNegocioException se alguma validação de negócio falhar (ex: saldo insuficiente).
-     */
     @Override
     @Transactional
-    public OrdemDeCorteResponseDTO processarOrdemDeCorte(OrdemDeCorteRequestDTO requestDTO) {
-        LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLotePrincipalId());
+    public OrdemDeProducaoResponseDTO criarOrdemDeCorte(OrdemDeCorteRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
+        if (!isGeometricUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
+            throw new RegraNegocioException("Este produto não pode ser produzido por corte. Use o endpoint de consumo direto.");
+        }
 
-        Dimensoes dimensoesFinais = calcularDimensoesFinais(requestDTO, produto);
-        validarOrdemDeCorte(lotePrincipal, dimensoesFinais);
+        LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLotePrincipalId());
 
-        ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(
-                requestDTO.getQuantidadeProduzida(),
-                produto,
-                lotePrincipal,
-                requestDTO.getMargens()
-        );
+        ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(requestDTO.getQuantidadeProduzida(), produto, lotePrincipal, requestDTO.getMargens());
+        BigDecimal comprimentoFinal = corteCalculatorService.calcularComprimentoFinal(parametros.comprimentoProduto(), parametros.linhas(), requestDTO.getMargens());
+        Dimensoes dimensoesFinais = new Dimensoes(parametros.larguraTotalLoteCm(), comprimentoFinal);
+        validarSaldoLoteCorte(lotePrincipal, dimensoesFinais);
 
-        List<CorteRealizadoDTO> cortesRealizadosDTOs = gerarCortesRealizados(parametros, lotePrincipal);
-        BigDecimal consumoTotalMetros = corteCalculatorService.calcularConsumoTotalMetros(cortesRealizadosDTOs);
-
-        Margens margens = ordemDeCorteMapper.toMargensEntity(requestDTO.getMargens());
-
-        OrdemDeCorte ordem = OrdemDeCorte.builder()
+        OrdemDeProducao ordem = OrdemDeProducao.builder()
                 .produto(produto)
-                .lotePrincipalId(requestDTO.getLotePrincipalId())
-                .canalVendaDestinoId(requestDTO.getCanalVendaDestinoId())
+                .lotesConsumidos(Set.of(lotePrincipal))
                 .quantidadeProduzida(requestDTO.getQuantidadeProduzida())
-                .modoCalculo(requestDTO.getModoCalculo() != null ? requestDTO.getModoCalculo() : ModoCalculo.AUTOMATICO)
+                .modoCalculo(requestDTO.getModoCalculo())
+                .margens(ordemDeProducaoMapper.toMargensEntity(requestDTO.getMargens()))
                 .larguraFinalCm(dimensoesFinais.getLarguraCm())
                 .comprimentoFinalCm(dimensoesFinais.getComprimentoCm())
                 .motivo(requestDTO.getMotivo())
-                .margens(margens)
                 .build();
 
-        for (CorteRealizadoDTO dto : cortesRealizadosDTOs) {
-            CorteRealizado corte = CorteRealizado.builder()
-                    .larguraCm(dto.getLarguraCm())
-                    .comprimentoCm(dto.getComprimentoCm())
-                    .quantidade(dto.getQuantidade())
-                    .tipo(dto.getTipo())
-                    .build();
-            ordem.addCorteRealizado(corte);
+        OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordem);
+
+        BigDecimal consumoTotal = corteCalculatorService.calcularConsumoTotal(dimensoesFinais);
+        registrarSaidaLote(lotePrincipal, consumoTotal, "Consumido pela Ordem de Produção #" + savedOrdem.getId());
+        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId());
+
+        return ordemDeProducaoMapper.toDto(savedOrdem);
+    }
+
+    @Override
+    @Transactional
+    public OrdemDeProducaoResponseDTO criarOrdemDeConsumoDireto(OrdemDeConsumoDiretoRequestDTO requestDTO) {
+        Produto produto = findProdutoById(requestDTO.getProdutoId());
+        if (!isDirectConsumptionUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
+            throw new RegraNegocioException("Este produto não pode ser produzido por consumo direto. Use o endpoint de corte.");
         }
 
-        OrdemDeCorte savedOrdem = ordemDeCorteRepository.save(ordem);
+        Set<LoteMateriaPrima> lotesConsumidos = new HashSet<>(loteMateriaPrimaRepository.findAllById(requestDTO.getLotesConsumidosIds()));
+        if (lotesConsumidos.size() != requestDTO.getLotesConsumidosIds().size()) {
+            throw new RegraNegocioException("Um ou mais IDs de lote fornecidos são inválidos.");
+        }
 
-        registrarSaida(lotePrincipal, consumoTotalMetros, requestDTO.getMotivo());
-        registrarEntradaProdutoAcabado(requestDTO, produto);
-        distribuirEstoqueParaCanal(requestDTO);
+        BigDecimal consumoTotalNecessario = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidadeProduzida());
 
-        return ordemDeCorteMapper.toDto(savedOrdem);
+        BigDecimal saldoTotalDisponivel = lotesConsumidos.stream()
+                .map(movimentacaoEstoqueLoteRepository::findSaldoByLote)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (saldoTotalDisponivel.compareTo(consumoTotalNecessario) < 0) {
+            throw new RegraNegocioException("Saldo de matéria-prima insuficiente. Necessário: " + consumoTotalNecessario + ", Disponível: " + saldoTotalDisponivel);
+        }
+
+        OrdemDeProducao ordem = OrdemDeProducao.builder()
+                .produto(produto)
+                .lotesConsumidos(lotesConsumidos)
+                .quantidadeProduzida(requestDTO.getQuantidadeProduzida())
+                .motivo(requestDTO.getMotivo())
+                .build();
+        OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordem);
+
+        BigDecimal consumoRestante = consumoTotalNecessario;
+        for (LoteMateriaPrima lote : lotesConsumidos) {
+            if (consumoRestante.compareTo(BigDecimal.ZERO) <= 0) break;
+            BigDecimal saldoDoLote = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+            BigDecimal consumoNesteLote = saldoDoLote.min(consumoRestante);
+            if (consumoNesteLote.compareTo(BigDecimal.ZERO) > 0) {
+                registrarSaidaLote(lote, consumoNesteLote, "Consumido pela Ordem de Produção #" + savedOrdem.getId());
+                consumoRestante = consumoRestante.subtract(consumoNesteLote);
+            }
+        }
+
+        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId());
+
+        return ordemDeProducaoMapper.toDto(savedOrdem);
     }
 
-    /**
-     * Busca uma Ordem de Corte pelo seu ID.
-     *
-     * @param id O ID da ordem de corte a ser buscada.
-     * @return Um DTO com os detalhes da ordem de corte encontrada.
-     * @throws RegraNegocioException se nenhuma ordem for encontrada com o ID fornecido.
-     */
     @Override
-    public OrdemDeCorteResponseDTO buscarOrdemDeCortePorId(Long id) {
-        OrdemDeCorte ordemDeCorte = ordemDeCorteRepository.findById(id)
-                .orElseThrow(() -> new RegraNegocioException("Ordem de Corte não encontrada com ID: " + id));
-        return ordemDeCorteMapper.toDto(ordemDeCorte);
+    public void excluir(Long id) {
+        if (!ordemDeProducaoRepository.existsById(id)) {
+            throw new RegraNegocioException("Ordem de Produção não encontrada com ID: " + id);
+        }
+        ordemDeProducaoRepository.deleteById(id);
     }
 
-    /**
-     * Lista todas as Ordens de Corte existentes.
-     *
-     * @return Uma lista de DTOs, cada um representando uma ordem de corte.
-     */
     @Override
-    public List<OrdemDeCorteResponseDTO> listarTodasOrdensDeCorte() {
-        List<OrdemDeCorte> ordensDeCorte = ordemDeCorteRepository.findAll();
-        return ordensDeCorte.stream()
-                .map(ordemDeCorteMapper::toDto)
+    public OrdemDeProducaoResponseDTO buscarPorId(Long id) {
+        return ordemDeProducaoRepository.findById(id)
+                .map(ordemDeProducaoMapper::toDto)
+                .orElseThrow(() -> new RegraNegocioException("Ordem de Produção não encontrada com ID: " + id));
+    }
+
+    @Override
+    public List<OrdemDeProducaoResponseDTO> listarTodas() {
+        return ordemDeProducaoRepository.findAll().stream()
+                .map(ordemDeProducaoMapper::toDto)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Exclui uma Ordem de Corte pelo seu ID.
-     *
-     * @param id O ID da ordem de corte a ser excluída.
-     * @throws RegraNegocioException se nenhuma ordem for encontrada para exclusão.
-     */
     @Override
-    @Transactional
-    public void excluirOrdemDeCorte(Long id) {
-        OrdemDeCorte ordem = ordemDeCorteRepository.findById(id)
-                .orElseThrow(() -> new RegraNegocioException("Ordem de corte não encontrada para exclusão: id=" + id));
-        ordemDeCorteRepository.delete(ordem);
+    public SimulacaoCorteResponseDTO simularCorte(SimulacaoCorteRequestDTO requestDTO) {
+        Produto produto = findProdutoById(requestDTO.getProdutoId());
+        if (!isGeometricUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
+            throw new RegraNegocioException("Este produto não utiliza uma matéria-prima geométrica para simulação de corte.");
+        }
+
+        List<LoteMateriaPrima> lotesDisponiveis = loteMateriaPrimaRepository.findAllByTipoMateriaPrima(produto.getTipoMateriaPrima()).stream()
+                .filter(lote -> movimentacaoEstoqueLoteRepository.findSaldoByLote(lote).compareTo(BigDecimal.ZERO) > 0)
+                .toList();
+
+        if (lotesDisponiveis.isEmpty()) {
+            throw new RegraNegocioException("Não há lotes de matéria-prima com estoque disponível para este produto.");
+        }
+
+        LoteMateriaPrima loteParaSimulacao = lotesDisponiveis.getFirst();
+
+        ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(requestDTO.getQuantidade(), produto, loteParaSimulacao, null);
+        BigDecimal comprimentoFinal = corteCalculatorService.calcularComprimentoFinal(parametros.comprimentoProduto(), parametros.linhas(), null);
+        Dimensoes dimensoesFinais = new Dimensoes(parametros.larguraTotalLoteCm(), comprimentoFinal);
+
+        return SimulacaoCorteResponseDTO.builder()
+                .modoCalculo(ModoCalculo.AUTOMATICO)
+                .larguraFinalCm(dimensoesFinais.getLarguraCm())
+                .comprimentoFinalCm(dimensoesFinais.getComprimentoCm())
+                .consumoEstimado(corteCalculatorService.calcularConsumoTotal(dimensoesFinais))
+                .build();
     }
 
-    /**
-     * Simula uma ordem de corte, calculando automaticamente o tamanho final, modo de cálculo, margens e lotes disponíveis.
-     * Permite ao usuário popular o formulário de ordem de produção com os dados simulados.
-     *
-     * @param requestDTO DTO com produto e quantidade.
-     * @return DTO de resposta com dados simulados e links HATEOAS.
-     */
     @Override
-    public SimulacaoOrdemDeCorteResponseDTO simularOrdemDeCorte(SimulacaoOrdemDeCorteRequestDTO requestDTO) {
-        Produto produto = produtoRepository.findById(requestDTO.getProdutoId())
-                .orElseThrow(() -> new ProdutoNotFoundException(requestDTO.getProdutoId()));
+    public SimulacaoConsumoDiretoResponseDTO simularConsumoDireto(SimulacaoConsumoDiretoRequestDTO requestDTO) {
+        Produto produto = findProdutoById(requestDTO.getProdutoId());
+        UnidadeDeMedida unidadeDeConsumo = produto.getTipoMateriaPrima().getUnidadeDeConsumo();
 
-        List<LoteMateriaPrima> lotesDoTipo = loteMateriaPrimaRepository.findAllByTipoMateriaPrima(produto.getTipoMateriaPrima());
-
-        List<LoteDisponivelResponseDTO> lotesDisponiveisDto = new ArrayList<>();
-        List<LoteMateriaPrima> lotesComEstoque = new ArrayList<>();
-
-        for (LoteMateriaPrima lote : lotesDoTipo) {
-            BigDecimal saldo = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
-            if (saldo.compareTo(BigDecimal.ZERO) > 0) {
-                lotesComEstoque.add(lote);
-                lotesDisponiveisDto.add(LoteDisponivelResponseDTO.builder()
-                        .id(lote.getId())
-                        .tipoMateriaPrimaId(lote.getTipoMateriaPrima().getId())
-                        .nomeTipoMateriaPrima(lote.getTipoMateriaPrima().getNome())
-                        .unidadeDeEstoque(lote.getUnidadeDeEstoque().name())
-                        .saldoEstoque(saldo.doubleValue())
-                        .atributos(lote.getAtributos())
-                        .loteDeOrigemId(lote.getLoteDeOrigem() != null ? lote.getLoteDeOrigem().getId() : null)
-                        .build());
-            }
+        if (!isDirectConsumptionUnit(unidadeDeConsumo)) {
+            throw new RegraNegocioException("Este produto utiliza uma matéria-prima geométrica. Use o simulador de corte.");
         }
 
-        TamanhoFinalResponseDTO tamanhoFinalSimulado = null;
-        if (!lotesComEstoque.isEmpty()) {
-            LoteMateriaPrima loteParaSimulacao = lotesComEstoque.getFirst();
+        BigDecimal consumoTotalEstimado = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidade());
 
-            ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(
-                    requestDTO.getQuantidade(),
-                    produto,
-                    loteParaSimulacao,
-                    null
-            );
-
-            BigDecimal comprimentoFinal = corteCalculatorService.calcularComprimentoFinal(
-                    parametros.comprimentoProduto(),
-                    parametros.linhas(),
-                    null
-            );
-
-            Dimensoes dimensoesFinais = new Dimensoes(parametros.larguraTotalLoteCm(), comprimentoFinal);
-
-            tamanhoFinalSimulado = TamanhoFinalResponseDTO.builder()
-                    .largura(dimensoesFinais.getLarguraCm().doubleValue())
-                    .comprimento(dimensoesFinais.getComprimentoCm().doubleValue())
-                    .build();
-        }
-
-        MargensResponseDTO margensDefault = MargensResponseDTO.builder()
-                .superior(0.0)
-                .inferior(0.0)
-                .esquerda(0.0)
-                .direita(0.0)
-                .build();
-
-        SimulacaoOrdemDeCorteResponseDTO response = SimulacaoOrdemDeCorteResponseDTO.builder()
-                .tamanhoFinal(tamanhoFinalSimulado)
-                .modoCalculo(ModoCalculo.AUTOMATICO.name())
-                .margens(margensDefault)
-                .lotesDisponiveis(lotesDisponiveisDto)
-                .build();
-
-        response.add(org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo(
-                org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn(
-                        com.dcriar.api.controller.production.OrdemDeProducaoController.class)
-                        .processarOrdemDeCorte(null)
-        ).withRel("criar-ordem-de-corte"));
-
-        return response;
-    }
-
-    private CorteRealizadoDTO criarCorteProduto(BigDecimal larguraProduto, BigDecimal comprimentoProduto, int quantidade) {
-        return CorteRealizadoDTO.builder()
-                .larguraCm(larguraProduto)
-                .comprimentoCm(comprimentoProduto)
-                .quantidade(quantidade)
-                .tipo("PRODUTO")
+        return SimulacaoConsumoDiretoResponseDTO.builder()
+                .consumoTotalEstimado(consumoTotalEstimado)
+                .unidadeDeConsumo(unidadeDeConsumo)
                 .build();
     }
 
-    private CorteRealizadoDTO criarCorteRetalho(BigDecimal largura, BigDecimal comprimento) {
-        return CorteRealizadoDTO.builder()
-                .larguraCm(largura)
-                .comprimentoCm(comprimento)
-                .quantidade(1)
-                .tipo("RETALHO")
-                .build();
-    }
-
-    private List<CorteRealizadoDTO> gerarCortesRealizados(
-            ParametrosCorte parametros,
-            LoteMateriaPrima lotePrincipal
-    ) {
-        List<CorteRealizadoDTO> cortesRealizados = new ArrayList<>();
-        int produtosRestantes = parametros.quantidade();
-        BigDecimal retalhoLarguraAcumulado = null;
-        BigDecimal retalhoComprimentoAcumulado = BigDecimal.ZERO;
-
-        for (int linha = 0; linha < parametros.linhas(); linha++) {
-            int produtosNaLinha = Math.min(parametros.produtosPorLinha(), produtosRestantes);
-            if (produtosNaLinha > 0) {
-                cortesRealizados.add(criarCorteProduto(parametros.larguraProduto(), parametros.comprimentoProduto(), produtosNaLinha));
-            }
-
-            BigDecimal larguraProdutosOcupadaLinha = parametros.larguraProduto().multiply(new BigDecimal(produtosNaLinha));
-            BigDecimal larguraRetalhoLinha = parametros.larguraUtilCm().subtract(larguraProdutosOcupadaLinha);
-
-            if (larguraRetalhoLinha.compareTo(BigDecimal.ZERO) > 0 && produtosNaLinha > 0) {
-                if (retalhoLarguraAcumulado != null && larguraRetalhoLinha.compareTo(retalhoLarguraAcumulado) == 0) {
-                    retalhoComprimentoAcumulado = retalhoComprimentoAcumulado.add(parametros.comprimentoProduto());
-                } else {
-                    if (retalhoLarguraAcumulado != null && retalhoComprimentoAcumulado.compareTo(BigDecimal.ZERO) > 0) {
-                        cortesRealizados.add(criarCorteRetalho(retalhoLarguraAcumulado, retalhoComprimentoAcumulado));
-                        criarLoteDeRetalho(lotePrincipal, retalhoLarguraAcumulado, retalhoComprimentoAcumulado.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
-                    }
-                    retalhoLarguraAcumulado = larguraRetalhoLinha;
-                    retalhoComprimentoAcumulado = parametros.comprimentoProduto();
-                }
-            }
-            produtosRestantes -= produtosNaLinha;
-        }
-
-        if (retalhoLarguraAcumulado != null && retalhoComprimentoAcumulado.compareTo(BigDecimal.ZERO) > 0) {
-            cortesRealizados.add(criarCorteRetalho(retalhoLarguraAcumulado, retalhoComprimentoAcumulado));
-            criarLoteDeRetalho(lotePrincipal, retalhoLarguraAcumulado, retalhoComprimentoAcumulado.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
-        }
-
-        return cortesRealizados;
-    }
-
-    private Dimensoes calcularDimensoesFinais(OrdemDeCorteRequestDTO requestDTO, Produto produto) {
-        if (requestDTO.getModoCalculo() == ModoCalculo.MANUAL) {
-            if (requestDTO.getTamanhoFinal() == null
-                    || requestDTO.getTamanhoFinal().getLarguraCm() == null
-                    || requestDTO.getTamanhoFinal().getComprimentoCm() == null) {
-                throw new RegraNegocioException("Para o modo MANUAL, as dimensões finais são obrigatórias.");
-            }
-            return new Dimensoes(
-                    requestDTO.getTamanhoFinal().getLarguraCm(),
-                    requestDTO.getTamanhoFinal().getComprimentoCm()
-            );
-        }
-
-        if (produto.getDimensoesUnitarias() == null) {
-            throw new RegraNegocioException("Produto não possui dimensões unitárias para cálculo automático.");
-        }
-
-        LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLotePrincipalId());
-        ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(
-                requestDTO.getQuantidadeProduzida(),
-                produto,
-                lotePrincipal,
-                requestDTO.getMargens()
-        );
-
-        BigDecimal comprimentoFinal = corteCalculatorService.calcularComprimentoFinal(
-                parametros.comprimentoProduto(),
-                parametros.linhas(),
-                requestDTO.getMargens()
-        );
-        return new Dimensoes(parametros.larguraTotalLoteCm(), comprimentoFinal);
-    }
-
-    private void validarOrdemDeCorte(LoteMateriaPrima lote, Dimensoes dimensoesFinais) {
-        if (lote.getUnidadeDeEstoque() != UnidadeDeMedida.METRO_LINEAR) {
-            throw new RegraNegocioException("Ordens de corte só podem ser processadas em lotes METRO_LINEAR.");
-        }
-        BigDecimal saldoAtualMetros = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
-        BigDecimal comprimentoDeCorteMetros = dimensoesFinais.getComprimentoCm()
-                .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
-
-        if (comprimentoDeCorteMetros.compareTo(saldoAtualMetros) > 0) {
-            throw new RegraNegocioException(
-                    "Saldo insuficiente. Necessário: " + comprimentoDeCorteMetros + "m, Disponível: " + saldoAtualMetros + "m."
-            );
-        }
-    }
-
-    private void registrarEntradaProdutoAcabado(OrdemDeCorteRequestDTO requestDTO, Produto produto) {
-        MovimentacaoEstoqueProduto entradaProducao = MovimentacaoEstoqueProduto.builder()
+    private void registrarEntradaProduto(Produto produto, int quantidade, String motivo) {
+        MovimentacaoEstoqueProduto entrada = MovimentacaoEstoqueProduto.builder()
                 .produto(produto)
                 .tipo(TipoMovimentacaoProduto.ENTRADA_PRODUCAO)
-                .quantidade(requestDTO.getQuantidadeProduzida() == null ? 0 : requestDTO.getQuantidadeProduzida())
-                .motivo("Produzido via Ordem de Corte. Consumiu Lote ID: " + requestDTO.getLotePrincipalId())
+                .quantidade(quantidade)
+                .motivo(motivo)
                 .build();
-        movimentacaoEstoqueProdutoRepository.save(entradaProducao);
+        movimentacaoEstoqueProdutoRepository.save(entrada);
     }
 
-    private void distribuirEstoqueParaCanal(OrdemDeCorteRequestDTO requestDTO) {
-        AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
-                .produtoId(requestDTO.getProdutoId())
-                .canalVendaId(requestDTO.getCanalVendaDestinoId())
-                .quantidade(requestDTO.getQuantidadeProduzida() == null ? 0 : requestDTO.getQuantidadeProduzida())
-                .build();
-        estoqueProdutoService.ajustarEstoque(ajusteDTO);
-    }
-
-    private void registrarSaida(LoteMateriaPrima lote, BigDecimal comprimentoDeCorteMetros, String motivo) {
+    private void registrarSaidaLote(LoteMateriaPrima lote, BigDecimal quantidade, String motivo) {
         MovimentacaoEstoqueLote saida = MovimentacaoEstoqueLote.builder()
                 .lote(lote)
                 .tipo(TipoMovimentacao.SAIDA_PRODUCAO)
-                .quantidade(comprimentoDeCorteMetros.negate())
+                .quantidade(quantidade.negate())
                 .motivo(motivo)
                 .build();
         movimentacaoEstoqueLoteRepository.save(saida);
     }
 
-    private void criarLoteDeRetalho(LoteMateriaPrima lotePrincipal, BigDecimal larguraSobraCm, BigDecimal comprimentoMetros) {
-        if (larguraSobraCm.compareTo(BigDecimal.ZERO) <= 0) {
-            return;
+    private void validarSaldoLoteCorte(LoteMateriaPrima lote, Dimensoes dimensoesFinais) {
+        BigDecimal saldoAtual = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+        BigDecimal consumoEstimado = corteCalculatorService.calcularConsumoTotal(dimensoesFinais);
+
+        if (consumoEstimado.compareTo(saldoAtual) > 0) {
+            throw new RegraNegocioException("Saldo insuficiente para o corte. Necessário: " + consumoEstimado + ", Disponível: " + saldoAtual);
         }
+    }
 
-        Map<String, Object> novosAtributos = Map.of(
-                "larguraMm", larguraSobraCm.multiply(new BigDecimal("10")).intValue(),
-                "comprimentoMm", comprimentoMetros.multiply(new BigDecimal("100")).intValue()
-        );
-
-        LoteMateriaPrima loteRetalho = LoteMateriaPrima.builder()
-                .tipoMateriaPrima(lotePrincipal.getTipoMateriaPrima())
-                .unidadeDeEstoque(UnidadeDeMedida.METRO_LINEAR)
-                .atributos(novosAtributos)
-                .loteDeOrigem(lotePrincipal)
-                .build();
-
-        MovimentacaoEstoqueLote entradaRetalho = MovimentacaoEstoqueLote.builder()
-                .lote(loteRetalho)
-                .tipo(TipoMovimentacao.ENTRADA_SOBRA)
-                .quantidade(comprimentoMetros)
-                .motivo("Retalho gerado a partir do Lote ID: " + lotePrincipal.getId())
-                .build();
-
-        loteRetalho.getMovimentacoes().add(entradaRetalho);
-        loteMateriaPrimaRepository.save(loteRetalho);
+    private Produto findProdutoById(Long id) {
+        return produtoRepository.findById(id)
+                .orElseThrow(() -> new ProdutoNotFoundException(id));
     }
 
     private LoteMateriaPrima findLoteById(Long id) {
@@ -409,8 +240,18 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .orElseThrow(() -> new LoteMateriaPrimaNotFoundException(id));
     }
 
-    private Produto findProdutoById(Long id) {
-        return produtoRepository.findById(id)
-                .orElseThrow(() -> new ProdutoNotFoundException(id));
+    private boolean isGeometricUnit(UnidadeDeMedida unidade) {
+        return unidade == UnidadeDeMedida.METRO_LINEAR ||
+                unidade == UnidadeDeMedida.CENTIMETRO_LINEAR ||
+                unidade == UnidadeDeMedida.METRO_QUADRADO ||
+                unidade == UnidadeDeMedida.CENTIMETRO_QUADRADO;
+    }
+
+    private boolean isDirectConsumptionUnit(UnidadeDeMedida unidade) {
+        return unidade == UnidadeDeMedida.LITRO ||
+                unidade == UnidadeDeMedida.MILILITRO ||
+                unidade == UnidadeDeMedida.QUILOGRAMA ||
+                unidade == UnidadeDeMedida.GRAMA ||
+                unidade == UnidadeDeMedida.UNIDADE;
     }
 }
