@@ -71,16 +71,16 @@ public class CorteCalculatorService {
                 : BigDecimal.valueOf(Long.MAX_VALUE);
 
         // Decisão: Escolhe a orientação que resulta no menor consumo
-        boolean isRotated;
+        boolean rotacionado;
         if (produtosPorLinhaNormal == 0 && produtosPorLinhaRotacionado == 0) {
             throw new RegraNegocioException("O produto não cabe na largura útil do lote em nenhuma orientação.");
         } else {
-            isRotated = comprimentoTotalRotacionado.compareTo(comprimentoTotalNormal) < 0;
+            rotacionado = comprimentoTotalRotacionado.compareTo(comprimentoTotalNormal) < 0;
         }
 
-        BigDecimal pLarguraFinal = isRotated ? comprimentoProduto : larguraProduto;
-        BigDecimal pComprimentoFinal = isRotated ? larguraProduto : comprimentoProduto;
-        int pProdutosPorLinhaFinal = isRotated ? produtosPorLinhaRotacionado : produtosPorLinhaNormal;
+        BigDecimal pLarguraFinal = rotacionado ? comprimentoProduto : larguraProduto;
+        BigDecimal pComprimentoFinal = rotacionado ? larguraProduto : comprimentoProduto;
+        int pProdutosPorLinhaFinal = rotacionado ? produtosPorLinhaRotacionado : produtosPorLinhaNormal;
 
         return new ParametrosCorte(
                 larguraTotalLoteCm,
@@ -91,7 +91,7 @@ public class CorteCalculatorService {
                 margemDireita,
                 larguraUtilCm,
                 pProdutosPorLinhaFinal,
-                    isRotated
+                rotacionado
         );
     }
 

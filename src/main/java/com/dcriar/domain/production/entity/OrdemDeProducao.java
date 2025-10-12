@@ -114,6 +114,12 @@ public class OrdemDeProducao {
     @Column(name = "motivo")
     private String motivo;
 
+    /**
+     * Indica se a orientação do produto foi rotacionada para otimização do corte.
+     */
+    @Column(name = "rotacionado")
+    private boolean rotacionado;
+
     public void addCorteRealizado(CorteRealizado corte) {
         cortesRealizados.add(corte);
         corte.setOrdemDeProducao(this);

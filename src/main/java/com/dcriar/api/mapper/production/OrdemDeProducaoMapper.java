@@ -28,6 +28,7 @@ public interface OrdemDeProducaoMapper {
      * @param ordem A entidade a ser convertida.
      * @return O DTO de resposta correspondente.
      */
+    @Mapping(target = "detalhesCorte", ignore = true)
     @Mapping(source = "produto.id", target = "produtoId")
     @Mapping(source = "produto.nome", target = "nomeProduto")
     @Mapping(source = "lotesConsumidos", target = "lotesConsumidosIds", qualifiedByName = "lotesToIds")

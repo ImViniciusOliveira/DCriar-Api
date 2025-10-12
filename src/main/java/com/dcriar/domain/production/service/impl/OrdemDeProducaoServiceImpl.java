@@ -33,6 +33,7 @@ import com.dcriar.exception.custom.ProdutoNotFoundException;
 import com.dcriar.exception.custom.RegraNegocioException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 
@@ -49,6 +50,7 @@ import java.util.stream.Collectors;
  * e por consumo direto, gerindo a movimentação de stock de matéria-prima e produtos acabados.
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
@@ -86,6 +88,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal comprimentoFinalCm;
         List<CorteRealizadoDTO> cortesRealizadosDTOs;
         BigDecimal larguraFinalCm;
+        ParametrosCorte parametros = null;
 
         if (requestDTO.getModoCalculo() == ModoCalculo.MANUAL) {
             if (requestDTO.getLarguraFinalCm() == null || requestDTO.getComprimentoFinalCm() == null) {
@@ -96,7 +99,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             consumoTotalMetros = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
             cortesRealizadosDTOs = List.of(criarCorteProduto(produto.getDimensoesUnitarias().getLarguraCm(), produto.getDimensoesUnitarias().getComprimentoCm(), requestDTO.getQuantidadeProduzida()));
         } else {
-            ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(requestDTO.getQuantidadeProduzida(), produto, lotePrincipal, requestDTO.getMargens());
+            parametros = corteCalculatorService.extrairParametrosCorte(requestDTO.getQuantidadeProduzida(), produto, lotePrincipal, requestDTO.getMargens());
             cortesRealizadosDTOs = gerarCortesRealizadosDinamico(parametros, lotePrincipal);
 
             long numeroDeLinhas = cortesRealizadosDTOs.stream().filter(c -> "PRODUTO".equals(c.getTipo())).count();
@@ -123,6 +126,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .larguraFinalCm(larguraFinalCm)
                 .comprimentoFinalCm(comprimentoFinalCm)
                 .motivo(requestDTO.getMotivo())
+                .rotacionado(parametros != null && parametros.rotacionado())
                 .build();
 
         for (CorteRealizadoDTO dto : cortesRealizadosDTOs) {

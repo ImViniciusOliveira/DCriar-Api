@@ -16,7 +16,6 @@ Este documento define as convenções e padrões a serem seguidos pela IA ao tra
 - **Lombok:** Utilize as anotações do Lombok de forma extensiva para reduzir código boilerplate.
   - Sempre prefira o uso de `@Builder` para a construção de entidades e DTOs.
   - Use `@RequiredArgsConstructor` para injeção de dependência em services e controllers.
-  - Use `@Slf4j` para logging quando necessário.
 
 ## 4. Arquitetura e Estrutura do Projeto
 

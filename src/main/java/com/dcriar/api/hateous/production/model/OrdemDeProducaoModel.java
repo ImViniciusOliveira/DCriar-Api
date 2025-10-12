@@ -1,5 +1,6 @@
 package com.dcriar.api.hateous.production.model;
 
+import com.dcriar.api.dto.response.production.DetalhesCorteDTO;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRootName;
@@ -52,4 +53,10 @@ public class OrdemDeProducaoModel extends RepresentationModel<OrdemDeProducaoMod
 
     @Schema(description = "Comprimento final do corte em cm (se aplicável).", nullable = true)
     private BigDecimal comprimentoFinalCm;
+
+    @Schema(description = "Indica se a peça foi rotacionada para melhor aproveitamento.", nullable = true)
+    private Boolean rotacionado;
+
+    @Schema(description = "Detalhes sobre a otimização do corte, se aplicável.", nullable = true)
+    private DetalhesCorteDTO detalhesCorte;
 }

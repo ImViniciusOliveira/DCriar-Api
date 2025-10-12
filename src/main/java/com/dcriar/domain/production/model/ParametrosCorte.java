@@ -19,10 +19,11 @@ import java.math.BigDecimal;
  * @param margemDireita      A margem direita em centímetros a ser desconsiderada no lote.
  * @param larguraUtilCm      A largura útil calculada do lote (largura total - margens).
  * @param produtosPorLinha   O número de produtos que cabem em uma única linha dentro da largura útil.
+ * @param rotacionado        Indica se a orientação do produto foi rotacionada para otimização.
  */
 @Builder
 public record ParametrosCorte(BigDecimal larguraTotalLoteCm, BigDecimal larguraProduto, BigDecimal comprimentoProduto,
                               int quantidade, BigDecimal margemEsquerda, BigDecimal margemDireita,
-                              BigDecimal larguraUtilCm, int produtosPorLinha, boolean isRotated) {
+                              BigDecimal larguraUtilCm, int produtosPorLinha, boolean rotacionado) {
 
 }

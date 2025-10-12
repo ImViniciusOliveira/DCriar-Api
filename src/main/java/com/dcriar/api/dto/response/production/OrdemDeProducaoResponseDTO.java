@@ -48,4 +48,10 @@ public class OrdemDeProducaoResponseDTO {
 
     @Schema(description = "Comprimento final do corte em cm (se aplicável).", nullable = true)
     private BigDecimal comprimentoFinalCm;
+
+    @Schema(description = "Indica se a peça foi rotacionada para melhor aproveitamento.", nullable = true)
+    private Boolean rotacionado;
+
+    @Schema(description = "Detalhes sobre a otimização do corte, se aplicável.", nullable = true)
+    private DetalhesCorteDTO detalhesCorte;
 }
