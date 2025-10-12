@@ -13,9 +13,28 @@ import java.math.RoundingMode;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Serviço responsável por realizar os cálculos geométricos para o planeamento de ordens de corte.
+ * Esta classe determina a melhor orientação da peça (normal ou rotacionada) para minimizar o consumo
+ * de matéria-prima e extrai os parâmetros essenciais para a execução do corte.
+ */
 @Component
 public class CorteCalculatorService {
 
+    /**
+     * Extrai os parâmetros de corte otimizados para uma dada produção.
+     * <p>
+     * O método calcula a melhor forma de arranjar as peças no lote de matéria-prima,
+     * testando a orientação normal e a rotacionada (90 graus) do produto. A orientação
+     * que resultar no menor consumo de comprimento linear do lote será a escolhida.
+     *
+     * @param quantidade A quantidade de produtos a serem produzidos.
+     * @param produto O produto a ser cortado.
+     * @param lotePrincipal O lote de matéria-prima a ser utilizado.
+     * @param margensRequest As margens de segurança a serem aplicadas no corte.
+     * @return um objeto {@link ParametrosCorte} contendo os dados calculados para o layout de corte mais eficiente.
+     * @throws RegraNegocioException se o produto não couber na largura do lote em nenhuma orientação.
+     */
     public ParametrosCorte extrairParametrosCorte(
             int quantidade,
             Produto produto,
@@ -23,8 +42,6 @@ public class CorteCalculatorService {
             MargensRequestDTO margensRequest
     ) {
         BigDecimal larguraTotalLoteCm = getLarguraEmCm(lotePrincipal.getAtributos());
-        BigDecimal larguraProduto = produto.getDimensoesUnitarias().getLarguraCm();
-        BigDecimal comprimentoProduto = produto.getDimensoesUnitarias().getComprimentoCm();
         BigDecimal margemEsquerda = Optional.ofNullable(margensRequest != null ? margensRequest.getEsquerda() : null).orElse(BigDecimal.ZERO);
         BigDecimal margemDireita = Optional.ofNullable(margensRequest != null ? margensRequest.getDireita() : null).orElse(BigDecimal.ZERO);
         BigDecimal larguraUtilCm = calcularLarguraUtilCm(larguraTotalLoteCm, margemEsquerda, margemDireita);
@@ -33,47 +50,49 @@ public class CorteCalculatorService {
             throw new RegraNegocioException("A soma das margens laterais não pode exceder a largura do lote.");
         }
 
-        int produtosPorLinha = calcularProdutosPorLinha(larguraUtilCm, larguraProduto);
-        if (produtosPorLinha < 1) {
-            throw new RegraNegocioException("O produto não cabe na largura útil do lote (considerando as margens).");
+        Dimensoes dimensoesProduto = produto.getDimensoesUnitarias();
+        BigDecimal larguraProduto = dimensoesProduto.getLarguraCm();
+        BigDecimal comprimentoProduto = dimensoesProduto.getComprimentoCm();
+
+        // --- Lógica de Otimização por Rotação ---
+
+        // Simulação 1: Orientação Normal
+        int produtosPorLinhaNormal = calcularProdutosPorLinha(larguraUtilCm, larguraProduto);
+        int linhasNormal = calcularLinhas(quantidade, produtosPorLinhaNormal);
+        BigDecimal comprimentoTotalNormal = (produtosPorLinhaNormal > 0)
+                ? comprimentoProduto.multiply(new BigDecimal(linhasNormal))
+                : BigDecimal.valueOf(Long.MAX_VALUE);
+
+        // Simulação 2: Orientação Rotacionada
+        int produtosPorLinhaRotacionado = calcularProdutosPorLinha(larguraUtilCm, comprimentoProduto);
+        int linhasRotacionado = calcularLinhas(quantidade, produtosPorLinhaRotacionado);
+        BigDecimal comprimentoTotalRotacionado = (produtosPorLinhaRotacionado > 0)
+                ? larguraProduto.multiply(new BigDecimal(linhasRotacionado))
+                : BigDecimal.valueOf(Long.MAX_VALUE);
+
+        // Decisão: Escolhe a orientação que resulta no menor consumo
+        boolean isRotated;
+        if (produtosPorLinhaNormal == 0 && produtosPorLinhaRotacionado == 0) {
+            throw new RegraNegocioException("O produto não cabe na largura útil do lote em nenhuma orientação.");
+        } else {
+            isRotated = comprimentoTotalRotacionado.compareTo(comprimentoTotalNormal) < 0;
         }
 
-        int linhas = calcularLinhas(quantidade, produtosPorLinha);
+        BigDecimal pLarguraFinal = isRotated ? comprimentoProduto : larguraProduto;
+        BigDecimal pComprimentoFinal = isRotated ? larguraProduto : comprimentoProduto;
+        int pProdutosPorLinhaFinal = isRotated ? produtosPorLinhaRotacionado : produtosPorLinhaNormal;
 
-        return ParametrosCorte.builder()
-                .larguraTotalLoteCm(larguraTotalLoteCm)
-                .larguraProduto(larguraProduto)
-                .comprimentoProduto(comprimentoProduto)
-                .quantidade(quantidade)
-                .margemEsquerda(margemEsquerda)
-                .margemDireita(margemDireita)
-                .larguraUtilCm(larguraUtilCm)
-                .produtosPorLinha(produtosPorLinha)
-                .linhas(linhas)
-                .build();
-    }
-
-    public BigDecimal calcularComprimentoFinal(BigDecimal comprimentoProduto, int linhas, MargensRequestDTO margens) {
-        BigDecimal comprimentoFinal = comprimentoProduto.multiply(new BigDecimal(linhas));
-        if (margens != null) {
-            comprimentoFinal = comprimentoFinal
-                    .add(Optional.ofNullable(margens.getSuperior()).orElse(BigDecimal.ZERO))
-                    .add(Optional.ofNullable(margens.getInferior()).orElse(BigDecimal.ZERO));
-        }
-        return comprimentoFinal;
-    }
-
-    /**
-     * Calcula o consumo total de matéria-prima em metros lineares, com base nas dimensões finais do corte.
-     * @param dimensoesFinais As dimensões finais do material a ser consumido.
-     * @return O consumo total em metros.
-     */
-    public BigDecimal calcularConsumoTotal(Dimensoes dimensoesFinais) {
-        if (dimensoesFinais == null || dimensoesFinais.getComprimentoCm() == null) {
-            return BigDecimal.ZERO;
-        }
-        // Converte o comprimento de centímetros para metros
-        return dimensoesFinais.getComprimentoCm().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+        return new ParametrosCorte(
+                larguraTotalLoteCm,
+                pLarguraFinal,
+                pComprimentoFinal,
+                quantidade,
+                margemEsquerda,
+                margemDireita,
+                larguraUtilCm,
+                pProdutosPorLinhaFinal,
+                    isRotated
+        );
     }
 
     private BigDecimal getLarguraEmCm(Map<String, Object> atributos) {
@@ -81,23 +100,23 @@ public class CorteCalculatorService {
         if (!(larguraMmObj instanceof Number)) {
             throw new RegraNegocioException("O atributo 'larguraMm' do lote é inválido ou não existe.");
         }
-        return new BigDecimal(((Number) larguraMmObj).intValue()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
+        return new BigDecimal(larguraMmObj.toString()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calcularLarguraUtilCm(BigDecimal larguraTotalLoteCm, BigDecimal margemEsquerda, BigDecimal margemDireita) {
         return larguraTotalLoteCm.subtract(margemEsquerda).subtract(margemDireita);
     }
 
-    private int calcularProdutosPorLinha(BigDecimal larguraUtilCm, BigDecimal larguraProduto) {
-        if (larguraProduto == null || larguraProduto.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RegraNegocioException("A largura do produto para cálculo deve ser maior que zero.");
+    private int calcularProdutosPorLinha(BigDecimal larguraUtilCm, BigDecimal dimensaoProduto) {
+        if (dimensaoProduto == null || dimensaoProduto.compareTo(BigDecimal.ZERO) <= 0) {
+            return 0;
         }
-        return larguraUtilCm.divide(larguraProduto, 0, RoundingMode.FLOOR).intValue();
+        return larguraUtilCm.divide(dimensaoProduto, 0, RoundingMode.FLOOR).intValue();
     }
 
     private int calcularLinhas(int quantidade, int produtosPorLinha) {
         if (produtosPorLinha <= 0) {
-            throw new RegraNegocioException("A quantidade de produtos por linha deve ser maior que zero para calcular o número de linhas.");
+            return 0;
         }
         return (int) Math.ceil((double) quantidade / produtosPorLinha);
     }

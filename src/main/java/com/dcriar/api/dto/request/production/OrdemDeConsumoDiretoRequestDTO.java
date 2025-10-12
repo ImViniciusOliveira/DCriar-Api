@@ -24,6 +24,9 @@ public class OrdemDeConsumoDiretoRequestDTO {
     @Schema(description = "Lista de IDs dos lotes de matéria-prima a serem consumidos.", example = "[4]")
     private List<Long> lotesConsumidosIds;
 
+    @Schema(description = "ID do canal de venda de destino do estoque (opcional).", example = "1")
+    private Long canalVendaDestinoId;
+
     @NotNull
     @Positive
     @Schema(description = "Quantidade de unidades do produto a serem produzidas.", example = "250")
