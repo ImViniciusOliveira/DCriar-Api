@@ -43,7 +43,7 @@ public class OpenApiConfig {
                         .email("suporte@dcriar.com.br")
                         .url("https://www.dcriar.com.br/contato"))
                 .license(new License()
-                        .name("Proprietário - Todos os direitos reservados")
+                        .name("Licença Personalizada - Uso apenas para estudo, interno ou acadêmico. Proibida venda ou uso comercial sem autorização do autor.")
                         .url("https://www.dcriar.com.br/contato"));
     }
 }
