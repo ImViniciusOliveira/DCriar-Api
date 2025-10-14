@@ -3,13 +3,23 @@ package com.dcriar.api.dto.request.production;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
- * DTO para solicitar a simulação de uma produção baseada em corte.
+ * Data Transfer Object (DTO) para solicitar a simulação de uma produção por corte.
+ * <p>
+ * Utilizado para estimar o consumo de matéria-prima para um produto de corte geométrico.
+ * O sistema simula o melhor layout de corte (considerando a rotação da peça) para
+ * calcular o consumo de material sem efetivamente criar uma ordem de produção.
  */
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class SimulacaoCorteRequestDTO {
 
@@ -17,7 +27,7 @@ public class SimulacaoCorteRequestDTO {
      * O ID do produto para o qual a simulação de corte será realizada.
      */
     @NotNull
-    @Schema(description = "ID do produto a ser simulado.", example = "2")
+    @Schema(description = "ID do produto a ser simulado.", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
@@ -25,6 +35,6 @@ public class SimulacaoCorteRequestDTO {
      */
     @NotNull
     @Positive
-    @Schema(description = "Quantidade de unidades a serem produzidas.", example = "1000")
+    @Schema(description = "Quantidade de unidades a serem produzidas na simulação.", example = "1000", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 }

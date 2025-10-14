@@ -2,9 +2,11 @@ package com.dcriar.domain.product.service.impl;
 
 import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
+import com.dcriar.api.dto.request.product.EstoqueRequestDTO;
+import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
-import com.dcriar.api.dto.response.product.ProdutoEstoqueDTO;
+import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
 import com.dcriar.api.mapper.product.EstoqueMapper;
 import com.dcriar.api.mapper.product.MovimentacaoProdutoMapper;
 import com.dcriar.api.mapper.product.ProdutoEstoqueDTOMapper;
@@ -105,7 +107,12 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
             );
         }
 
-        estoque.setQuantidade(novaQuantidade);
+        EstoqueRequestDTO updateDTO = EstoqueRequestDTO.builder()
+                .produtoId(produto.getId())
+                .canalVendaId(canalVenda.getId())
+                .quantidade(novaQuantidade)
+                .build();
+        estoque.updateFrom(updateDTO, produto, canalVenda);
         Estoque estoqueSalvo = estoqueRepository.save(estoque);
         return estoqueMapper.toResponseDTO(estoqueSalvo);
     }
@@ -124,12 +131,13 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     public void ajustarEstoqueFisico(AjusteEstoqueProdutoRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
 
-        MovimentacaoEstoqueProduto movimentacaoManual = MovimentacaoEstoqueProduto.builder()
-                .produto(produto)
-                .tipo(TipoMovimentacaoProduto.AJUSTE_MANUAL)
+        MovimentacaoEstoqueProdutoRequestDTO movimentacaoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
+                .produtoId(produto.getId())
+                .tipo(TipoMovimentacaoProduto.AJUSTE_MANUAL.name())
                 .quantidade(requestDTO.getQuantidade())
                 .motivo(requestDTO.getMotivo())
                 .build();
+        MovimentacaoEstoqueProduto movimentacaoManual = MovimentacaoEstoqueProduto.from(movimentacaoDTO, produto);
 
         movimentacaoEstoqueProdutoRepository.save(movimentacaoManual);
     }
@@ -177,10 +185,10 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
      * Lista o estoque de todos os produtos, formatado para a necessidade específica do frontend.
      * O resultado é agrupado por produto, com uma lista de seus estoques em cada canal.
      *
-     * @return Uma lista de {@link ProdutoEstoqueDTO}, otimizada para consumo pela interface de usuário.
+     * @return Uma lista de {@link ProdutoEstoqueResponseDTO}, otimizada para consumo pela interface de usuário.
      */
     @Override
-    public List<ProdutoEstoqueDTO> listarEstoqueDeTodosOsProdutosPorCanal() {
+    public List<ProdutoEstoqueResponseDTO> listarEstoqueDeTodosOsProdutosPorCanal() {
         // 1. Busca todos os registros de estoque do banco de dados.
         // 2. Agrupa os registros pelo ID do produto, criando um Map<Long, List<Estoque>>.
         // 3. Transforma cada entrada do mapa (ID do produto e sua lista de estoques) em um ProdutoEstoqueDTO.
@@ -194,17 +202,20 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     /**
      * Cria um novo registro de estoque para um produto em um canal de venda.
      * Método auxiliar para ser usado quando um registro de estoque não existe e precisa ser inicializado.
+     * <p>
+     * Utiliza o método from() da entidade Estoque para centralizar regras de negócio de criação.
      *
      * @param produto O produto a ser associado ao novo estoque.
      * @param canalVenda O canal de venda a ser associado ao novo estoque.
      * @return Uma nova instância de {@link Estoque} com quantidade inicial zero.
      */
     private Estoque criarNovoEstoque(Produto produto, CanalVenda canalVenda) {
-        return Estoque.builder()
-                .produto(produto)
-                .canalVenda(canalVenda)
-                .quantidade(0)
-                .build();
+        EstoqueRequestDTO dto = EstoqueRequestDTO.builder()
+            .produtoId(produto.getId())
+            .canalVendaId(canalVenda.getId())
+            .quantidade(0)
+            .build();
+        return Estoque.from(dto, produto, canalVenda);
     }
 
     /**

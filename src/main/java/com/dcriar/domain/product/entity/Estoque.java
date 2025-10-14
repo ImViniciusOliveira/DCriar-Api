@@ -1,5 +1,6 @@
 package com.dcriar.domain.product.entity;
 
+import com.dcriar.api.dto.request.product.EstoqueRequestDTO;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -46,4 +47,37 @@ public class Estoque {
      */
     @Column(nullable = false)
     private Integer quantidade;
+
+    /**
+     * Cria uma instância de Estoque a partir do DTO de request, centralizando regras de negócio de criação.
+     * <p>
+     * Este método deve ser utilizado pela service para garantir consistência na criação de registros.
+     *
+     * @param dto        DTO de request contendo os dados para criação
+     * @param produto    Produto já carregado da base
+     * @param canalVenda Canal de venda já carregado da base
+     * @return Nova instância de Estoque
+     */
+    public static Estoque from(EstoqueRequestDTO dto, Produto produto, CanalVenda canalVenda) {
+        return Estoque.builder()
+                .produto(produto)
+                .canalVenda(canalVenda)
+                .quantidade(dto.getQuantidade())
+                .build();
+    }
+
+    /**
+     * Atualiza os campos da entidade Estoque a partir do DTO de request, centralizando regras de negócio de atualização.
+     * <p>
+     * Este método deve ser utilizado pela service para garantir consistência na atualização de registros.
+     *
+     * @param dto        DTO de request contendo os dados para atualização
+     * @param produto    Produto já carregado da base
+     * @param canalVenda Canal de venda já carregado da base
+     */
+    public void updateFrom(EstoqueRequestDTO dto, Produto produto, CanalVenda canalVenda) {
+        this.produto = produto;
+        this.canalVenda = canalVenda;
+        this.quantidade = dto.getQuantidade();
+    }
 }

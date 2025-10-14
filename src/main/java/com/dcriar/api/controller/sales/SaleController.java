@@ -32,7 +32,12 @@ public class SaleController {
     private final SaleModelAssembler saleModelAssembler;
 
     /**
-     * Regista uma nova venda e orquestra a baixa automática de estoque.
+     * Registra uma nova venda e orquestra a baixa automática de estoque.
+     * <p>
+     * Exemplo de uso: POST /api/v1/sales
+     *
+     * @param requestDTO Dados da venda
+     * @return Venda registrada com links HATEOAS e header Location
      */
     @PostMapping
     @Operation(summary = "Registar uma nova venda")
@@ -48,7 +53,11 @@ public class SaleController {
     }
 
     /**
-     * Lista todas as vendas registadas no sistema.
+     * Lista todas as vendas registradas no sistema.
+     * <p>
+     * Exemplo de uso: GET /api/v1/sales
+     *
+     * @return Lista de vendas com links HATEOAS
      */
     @GetMapping
     @Operation(summary = "Listar todas as vendas")
@@ -60,6 +69,11 @@ public class SaleController {
 
     /**
      * Busca os detalhes de uma venda específica pelo seu ID.
+     * <p>
+     * Exemplo de uso: GET /api/v1/sales/{id}
+     *
+     * @param id ID da venda
+     * @return Venda encontrada com links HATEOAS
      */
     @GetMapping("/{id}")
     @Operation(summary = "Buscar uma venda por ID")

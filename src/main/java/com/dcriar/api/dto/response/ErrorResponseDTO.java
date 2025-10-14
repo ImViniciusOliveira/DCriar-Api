@@ -18,7 +18,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ErrorDTO {
+public class ErrorResponseDTO {
 
     /**
      * O momento em que o erro ocorreu, em UTC.

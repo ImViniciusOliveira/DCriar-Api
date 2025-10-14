@@ -4,7 +4,7 @@ import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
-import com.dcriar.api.dto.response.product.ProdutoEstoqueDTO;
+import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
 import com.dcriar.api.hateous.product.assembler.EstoqueProdutoModelAssembler;
 import com.dcriar.api.hateous.product.assembler.MovimentacaoProdutoModelAssembler;
 import com.dcriar.api.hateous.product.model.EstoqueProdutoModel;
@@ -93,7 +93,7 @@ public class EstoqueProdutoController {
      */
     @GetMapping("/por-produto-canais")
     @Operation(summary = "Listar o estoque de todos os produtos, agrupados por canal de venda")
-    public ResponseEntity<List<ProdutoEstoqueDTO>> listarEstoqueDeTodosOsProdutosPorCanal() {
+    public ResponseEntity<List<ProdutoEstoqueResponseDTO>> listarEstoqueDeTodosOsProdutosPorCanal() {
         return ResponseEntity.ok(estoqueProdutoService.listarEstoqueDeTodosOsProdutosPorCanal());
     }
 
@@ -105,7 +105,7 @@ public class EstoqueProdutoController {
      */
     @GetMapping("/por-produto/{produtoId}/canais")
     @Operation(summary = "Listar o estoque de um produto, agrupado por canal de venda")
-    public ResponseEntity<ProdutoEstoqueDTO> listarEstoquesPorProduto(@PathVariable Long produtoId) {
+    public ResponseEntity<ProdutoEstoqueResponseDTO> listarEstoquesPorProduto(@PathVariable Long produtoId) {
         // Reutiliza o serviço que busca todos os estoques e filtra pelo produtoId desejado.
         // Isso evita a criação de uma nova consulta no banco de dados para um caso de uso específico.
         return estoqueProdutoService.listarEstoqueDeTodosOsProdutosPorCanal().stream()

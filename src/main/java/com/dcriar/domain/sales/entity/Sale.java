@@ -75,4 +75,47 @@ public class Sale {
         this.items.add(item);
         item.setSale(this);
     }
+
+    /**
+     * Cria uma instância de Sale a partir dos dados informados, centralizando regras de negócio de criação.
+     * <p>
+     * Este método deve ser utilizado pela service para garantir consistência e aplicar validações extras.
+     * CanalVenda e SaleItem devem ser resolvidos previamente na service.
+     *
+     * @param canalVenda Canal de venda resolvido
+     * @param items Lista de itens da venda já convertidos
+     * @return Sale criada
+     */
+    public static Sale from(CanalVenda canalVenda, List<SaleItem> items) {
+        Sale sale = Sale.builder()
+                .canalVenda(canalVenda)
+                .items(new ArrayList<>())
+                .build();
+        if (items != null) {
+            for (SaleItem item : items) {
+                sale.addItem(item);
+            }
+        }
+        // O valor total deve ser calculado e atribuído na service
+        return sale;
+    }
+
+    /**
+     * Atualiza os campos da Sale existente a partir dos dados informados, centralizando regras de negócio de atualização.
+     * <p>
+     * Este método deve ser utilizado pela service para garantir consistência e aplicar validações extras.
+     * CanalVenda e SaleItem devem ser resolvidos previamente na service.
+     *
+     * @param canalVenda Canal de venda resolvido
+     * @param items Lista de itens da venda já convertidos
+     */
+    public void updateFrom(CanalVenda canalVenda, List<SaleItem> items) {
+        this.canalVenda = canalVenda;
+        this.items.clear();
+        if (items != null) {
+            for (SaleItem item : items) {
+                this.addItem(item);
+            }
+        }
+    }
 }

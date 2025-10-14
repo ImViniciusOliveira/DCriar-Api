@@ -1,7 +1,7 @@
 package com.dcriar.domain.sales.service.impl;
 
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
-import com.dcriar.api.dto.request.sales.SaleItemRequestDTO;
+import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.sales.SaleRequestDTO;
 import com.dcriar.api.dto.response.sales.SaleResponseDTO;
 import com.dcriar.api.mapper.sales.SaleMapper;
@@ -90,13 +90,7 @@ public class SaleServiceImpl implements SaleService {
         CanalVenda canalVenda = canalVendaRepository.findById(requestDTO.getCanalVendaId())
                 .orElseThrow(() -> new CanalVendaNotFoundException(requestDTO.getCanalVendaId()));
 
-        Sale newSale = Sale.builder()
-                .canalVenda(canalVenda)
-                .build();
-
-        BigDecimal totalAmount = BigDecimal.ZERO;
-
-        for (SaleItemRequestDTO itemDTO : requestDTO.getItems()) {
+        List<SaleItem> saleItems = requestDTO.getItems().stream().map(itemDTO -> {
             Produto produto = produtoRepository.findById(itemDTO.getProdutoId())
                     .orElseThrow(() -> new ProdutoNotFoundException(itemDTO.getProdutoId()));
 
@@ -109,19 +103,20 @@ public class SaleServiceImpl implements SaleService {
 
             BigDecimal itemTotalPrice = unitPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantidade()));
 
-            SaleItem saleItem = SaleItem.builder()
+            performStockReduction(produto, canalVenda, itemDTO.getQuantidade());
+
+            return SaleItem.builder()
                     .produto(produto)
                     .quantity(itemDTO.getQuantidade())
                     .unitPrice(unitPrice)
                     .totalPrice(itemTotalPrice)
                     .build();
+        }).collect(Collectors.toList());
 
-            newSale.addItem(saleItem);
-            totalAmount = totalAmount.add(itemTotalPrice);
-
-            performStockReduction(produto, canalVenda, itemDTO.getQuantidade());
-        }
-
+        Sale newSale = Sale.from(canalVenda, saleItems);
+        BigDecimal totalAmount = saleItems.stream()
+                .map(SaleItem::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         newSale.setTotalAmount(totalAmount);
         Sale savedSale = saleRepository.save(newSale);
 
@@ -181,13 +176,14 @@ public class SaleServiceImpl implements SaleService {
 
         estoqueProdutoService.ajustarEstoque(ajusteDTO);
 
-        MovimentacaoEstoqueProduto movimentacaoVenda = MovimentacaoEstoqueProduto.builder()
-                .produto(produto)
-                .tipo(TipoMovimentacaoProduto.SAIDA_VENDA)
+        // Monta o DTO de movimentação para centralizar regras de negócio
+        MovimentacaoEstoqueProdutoRequestDTO movimentacaoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
+                .produtoId(produto.getId())
+                .tipo(TipoMovimentacaoProduto.SAIDA_VENDA.name())
                 .quantidade(quantity * -1)
                 .motivo(String.format("Venda no canal: %s", canalVenda.getNome()))
                 .build();
-
+        MovimentacaoEstoqueProduto movimentacaoVenda = MovimentacaoEstoqueProduto.from(movimentacaoDTO, produto);
         movimentacaoEstoqueProdutoRepository.save(movimentacaoVenda);
     }
 }

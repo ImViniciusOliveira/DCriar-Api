@@ -3,7 +3,10 @@ package com.dcriar.api.dto.response.production;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.hateoas.RepresentationModel;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -15,9 +18,11 @@ import java.util.List;
  * Fornece uma visão detalhada de uma ordem de produção, seja ela de corte
  * ou de consumo direto, incluindo os lotes consumidos e os produtos gerados.
  */
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
 @Builder
-public class OrdemDeProducaoResponseDTO {
+public class OrdemDeProducaoResponseDTO extends RepresentationModel<OrdemDeProducaoResponseDTO> {
 
     @Schema(description = "ID único da ordem de produção.")
     private Long id;
@@ -53,5 +58,6 @@ public class OrdemDeProducaoResponseDTO {
     private Boolean rotacionado;
 
     @Schema(description = "Detalhes sobre a otimização do corte, se aplicável.", nullable = true)
-    private DetalhesCorteDTO detalhesCorte;
+    private DetalhesCorteResponseDTO detalhesCorte;
 }
+

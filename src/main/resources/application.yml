@@ -18,6 +18,12 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+
+  # Configuração do Jackson para envelopar a resposta JSON.
+  jackson:
+    serialization:
+      wrap-root-value: true
+
   # Configuração de logging geral.
 logging:
   level:
@@ -35,6 +41,14 @@ security:
 # Configurações de Upload de Arquivos
 file:
   upload-dir: ./uploads
+
+# Configurações do Springdoc para documentação da API
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    url: /v3/api-docs
 
 ---
 

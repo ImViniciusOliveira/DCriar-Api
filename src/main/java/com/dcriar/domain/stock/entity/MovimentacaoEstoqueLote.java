@@ -1,5 +1,6 @@
 package com.dcriar.domain.stock.entity;
 
+import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,8 +12,14 @@ import java.time.OffsetDateTime;
 /**
  * Entidade que representa um único registro no "Livro-Razão" do estoque de um lote de matéria-prima.
  * <p>
- * Cada movimentação detalha a data, o tipo (entrada/saída), a quantidade e o motivo,
+ * Cada movimentação detalha a data, o tipo (entrada/saída), a quantidade, o motivo e o custo por unidade,
  * permitindo rastrear o histórico completo de um lote.
+ * <p>
+ * <b>Padrão de projeto:</b> Toda criação ou atualização de movimentação deve ser feita via os métodos
+ * {@link #from(MovimentacaoRequestDTO, LoteMateriaPrima)} e {@link #updateFrom(MovimentacaoRequestDTO, LoteMateriaPrima)},
+ * que centralizam as regras de negócio e garantem consistência.
+ * <p>
+ * O campo {@code custoPorUnidadeBase} só deve ser preenchido em movimentações de entrada de compra.
  */
 @Entity
 @Table(name = "movimentacoes_estoque_lote")
@@ -73,4 +80,60 @@ public class MovimentacaoEstoqueLote {
      */
     @Column(length = 254)
     private String motivo;
+
+    /**
+     * Cria uma nova instância de MovimentacaoEstoqueLote a partir do DTO de request e do lote informado.
+     * <p>
+     * <b>Centraliza regras de negócio de criação de movimentação de estoque.</b>
+     * <ul>
+     *   <li>Deve ser utilizado exclusivamente pela camada de service.</li>
+     *   <li>Recebe o DTO de request validado e o lote de matéria-prima.</li>
+     *   <li>Não preenche o campo {@code custoPorUnidadeBase}, que deve ser setado manualmente se necessário.</li>
+     * </ul>
+     * <p>
+     * <b>Exemplo de uso:</b>
+     * <pre>
+     * MovimentacaoRequestDTO dto = ...;
+     * MovimentacaoEstoqueLote mov = MovimentacaoEstoqueLote.from(dto, lote);
+     * mov.setCustoPorUnidadeBase(...); // se aplicável
+     * </pre>
+     *
+     * @param dto  DTO contendo os dados da movimentação (tipo, quantidade, motivo)
+     * @param lote Lote de matéria-prima ao qual a movimentação pertence
+     * @return Nova instância de MovimentacaoEstoqueLote
+     */
+    public static MovimentacaoEstoqueLote from(MovimentacaoRequestDTO dto, LoteMateriaPrima lote) {
+        return MovimentacaoEstoqueLote.builder()
+                .lote(lote)
+                .tipo(dto.getTipo())
+                .quantidade(dto.getQuantidade())
+                .motivo(dto.getMotivo())
+                .build();
+    }
+
+    /**
+     * Atualiza os campos da movimentação de estoque a partir do DTO de request e do lote informado.
+     * <p>
+     * <b>Centraliza regras de negócio de atualização de movimentação de estoque.</b>
+     * <ul>
+     *   <li>Deve ser utilizado exclusivamente pela camada de service.</li>
+     *   <li>Recebe o DTO de request validado e o lote de matéria-prima.</li>
+     *   <li>Não altera o campo {@code custoPorUnidadeBase}, que deve ser atualizado manualmente se necessário.</li>
+     * </ul>
+     * <p>
+     * <b>Exemplo de uso:</b>
+     * <pre>
+     * movimentacao.updateFrom(dto, lote);
+     * movimentacao.setCustoPorUnidadeBase(...); // se aplicável
+     * </pre>
+     *
+     * @param dto  DTO contendo os dados da movimentação (tipo, quantidade, motivo)
+     * @param lote Lote de matéria-prima ao qual a movimentação pertence
+     */
+    public void updateFrom(MovimentacaoRequestDTO dto, LoteMateriaPrima lote) {
+        this.lote = lote;
+        this.tipo = dto.getTipo();
+        this.quantidade = dto.getQuantidade();
+        this.motivo = dto.getMotivo();
+    }
 }

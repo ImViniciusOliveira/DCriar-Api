@@ -18,22 +18,26 @@ import org.mapstruct.MappingConstants;
 public interface TipoMateriaPrimaMapper {
 
     /**
-     * Converte um DTO de requisição para a entidade TipoMateriaPrima.
+     * Converte um DTO de requisição {@link TipoMateriaPrimaRequestDTO} para a entidade {@link TipoMateriaPrima}.
      * <p>
-     * Ignoramos o campo 'id' pois ele será gerado pelo banco de dados e não
-     * deve ser fornecido pelo cliente na criação.
+     * Este método é utilizado no processo de criação de um novo tipo de matéria-prima.
+     * O campo 'id' é intencionalmente ignorado, pois ele será gerado automaticamente
+     * pelo banco de dados no momento da persistência e não deve ser fornecido pelo cliente.
      *
-     * @param requestDTO O DTO de entrada.
+     * @param requestDTO O DTO de entrada com os dados do novo tipo de matéria-prima.
      * @return A entidade {@link TipoMateriaPrima} correspondente, pronta para ser persistida.
      */
     @Mapping(target = "id", ignore = true)
     TipoMateriaPrima toEntity(TipoMateriaPrimaRequestDTO requestDTO);
 
     /**
-     * Converte a entidade TipoMateriaPrima para um DTO de resposta.
+     * Converte a entidade {@link TipoMateriaPrima} para um DTO de resposta {@link TipoMateriaPrimaResponseDTO}.
+     * <p>
+     * Este método é utilizado em todas as operações de leitura (busca por ID, listagem)
+     * para formatar os dados da entidade em um formato adequado para a camada de apresentação.
      *
-     * @param tipoMateriaPrima A entidade de origem.
-     * @return O DTO {@link TipoMateriaPrimaResponseDTO} correspondente.
+     * @param tipoMateriaPrima A entidade de domínio a ser convertida.
+     * @return O DTO de resposta correspondente.
      */
     TipoMateriaPrimaResponseDTO toResponseDTO(TipoMateriaPrima tipoMateriaPrima);
 }

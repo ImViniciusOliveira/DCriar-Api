@@ -2,18 +2,22 @@ package com.dcriar.api.dto.response.product;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * DTO (Data Transfer Object) que representa o estoque de um produto em um canal de venda específico.
- * É um componente do {@link ProdutoEstoqueDTO}, detalhando a quantidade de um produto
+ * É um componente do {@link ProdutoEstoqueResponseDTO}, detalhando a quantidade de um produto
  * disponível em um determinado canal.
  */
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CanalEstoqueDTO {
+@Builder
+public class CanalEstoqueResponseDTO {
 
     /**
      * O nome do canal de venda (ex: "LOJA_FISICA", "MERCADO_LIVRE").

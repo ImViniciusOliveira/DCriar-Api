@@ -8,7 +8,10 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 /**
- * Data Transfer Object (DTO) que representa a resposta de um Lote de Matéria-Prima.
+ * Data Transfer Object (DTO) para a resposta detalhada de um Lote de Matéria-Prima.
+ * <p>
+ * Este DTO fornece uma visão completa de um lote físico de matéria-prima, incluindo
+ * seu tipo, saldo em estoque, atributos específicos e rastreabilidade de origem.
  */
 @Getter
 @Setter
@@ -29,12 +32,12 @@ public class LoteMateriaPrimaResponseDTO {
     @Schema(description = "Unidade em que o saldo deste lote é medido.", example = "METRO_LINEAR")
     private UnidadeDeMedida unidadeDeEstoque;
 
-    @Schema(description = "O saldo de estoque atual deste lote.", example = "49.00")
+    @Schema(description = "O saldo de estoque atual deste lote.", example = "49.0000")
     private BigDecimal saldoEstoque;
 
-    @Schema(description = "Atributos flexíveis que descrevem as especificações deste lote físico.")
+    @Schema(description = "Atributos flexíveis que descrevem as especificações deste lote físico.", example = "{\"larguraMm\": 610}")
     private Map<String, Object> atributos;
 
-    @Schema(description = "ID do lote que deu origem a este (se for um retalho).", example = "1")
+    @Schema(description = "ID do lote que deu origem a este (se for um retalho).", nullable = true, example = "1")
     private Long loteDeOrigemId;
 }

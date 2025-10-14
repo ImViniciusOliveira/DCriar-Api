@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 /**
  * Data Transfer Object (DTO) para encapsular as margens de segurança de um corte.
  * <p>
- * Este DTO é um componente reutilizável, embutido em {@link OrdemDeProducaoRequestDTO},
+ * Este DTO é um componente reutilizável, embutido em {@link OrdemDeCorteRequestDTO},
  * e é obrigatório quando o modo de cálculo da ordem é 'AUTOMATICO'. As margens
  * (sangria) são adicionadas às dimensões do produto para determinar o tamanho
  * final do corte, garantindo que não haja bordas brancas indesejadas.

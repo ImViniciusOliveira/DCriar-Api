@@ -1,16 +1,16 @@
 package com.dcriar.domain.production.entity;
 
+import com.dcriar.api.dto.request.production.CorteRealizadoRequestDTO;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
 
 /**
- * Representa um corte específico realizado como parte de uma {@link OrdemDeProducao}.
+ * Representa um corte realizado em uma ordem de produção.
  * <p>
- * Cada instância registra as dimensões e a quantidade de peças cortadas,
- * especificando se o corte resultou em um produto final ou em um retalho (sobra de material).
- * Este conceito é aplicável apenas a produções do tipo 'Corte'.
+ * Cada registro armazena as dimensões, quantidade e tipo do corte (produto ou retalho).
+ * Os métodos from e updateFrom centralizam regras de negócio para criação e atualização a partir do DTO.
  */
 @Entity
 @Table(name = "cortes_realizados")
@@ -22,44 +22,76 @@ import java.math.BigDecimal;
 @ToString
 @EqualsAndHashCode(of = "id")
 public class CorteRealizado {
-
     /**
-     * O ID único do registro de corte.
+     * ID único do corte realizado.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * A ordem de produção à qual este corte está associado.
+     * Ordem de produção associada ao corte.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ordem_de_producao_id", nullable = false)
     private OrdemDeProducao ordemDeProducao;
 
     /**
-     * A largura do corte em centímetros.
+     * Largura do corte em centímetros.
      */
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal larguraCm;
 
     /**
-     * O comprimento do corte em centímetros.
+     * Comprimento do corte em centímetros.
      */
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal comprimentoCm;
 
     /**
-     * A quantidade de peças idênticas produzidas com este corte.
+     * Quantidade de peças produzidas com este corte.
      */
     @Column(nullable = false)
     private int quantidade;
 
     /**
-     * O tipo de resultado do corte.
-     * <p>
-     * Pode ser "PRODUTO" para um item final ou "RETALHO" para sobras de material.
+     * Tipo do corte: "PRODUTO" ou "RETALHO".
      */
     @Column(nullable = false, length = 20)
     private String tipo;
+
+    /**
+     * Cria uma instância de CorteRealizado a partir do DTO de request.
+     * <p>
+     * Centraliza regras de negócio de criação.
+     *
+     * @param dto DTO de request
+     * @param ordemDeProducao Ordem de produção associada
+     * @return Nova instância de CorteRealizado
+     */
+    public static CorteRealizado from(CorteRealizadoRequestDTO dto, OrdemDeProducao ordemDeProducao) {
+        return CorteRealizado.builder()
+                .ordemDeProducao(ordemDeProducao)
+                .larguraCm(dto.getLarguraCm())
+                .comprimentoCm(dto.getComprimentoCm())
+                .quantidade(dto.getQuantidade())
+                .tipo(dto.getTipo())
+                .build();
+    }
+
+    /**
+     * Atualiza os campos da entidade CorteRealizado a partir do DTO de request.
+     * <p>
+     * Centraliza regras de negócio de atualização.
+     *
+     * @param dto DTO de request
+     * @param ordemDeProducao Ordem de produção associada
+     */
+    public void updateFrom(CorteRealizadoRequestDTO dto, OrdemDeProducao ordemDeProducao) {
+        this.ordemDeProducao = ordemDeProducao;
+        this.larguraCm = dto.getLarguraCm();
+        this.comprimentoCm = dto.getComprimentoCm();
+        this.quantidade = dto.getQuantidade();
+        this.tipo = dto.getTipo();
+    }
 }

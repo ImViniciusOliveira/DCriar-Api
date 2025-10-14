@@ -53,4 +53,15 @@ public interface LoteMateriaPrimaService {
      * @return Uma lista de {@link MovimentacaoResponseDTO} representando todas as movimentações do lote.
      */
     List<MovimentacaoResponseDTO> listarMovimentacoesPorLote(Long loteId);
+
+    /**
+     * Atualiza um lote de matéria-prima existente no sistema.
+     * <p>
+     * Utiliza o método {@code updateFrom} da entidade para centralizar regras de negócio de atualização.
+     *
+     * @param id O ID do lote a ser atualizado.
+     * @param requestDTO O DTO com os dados para atualização do lote.
+     * @return O {@link LoteMateriaPrimaResponseDTO} do lote atualizado.
+     */
+    LoteMateriaPrimaResponseDTO update(Long id, LoteMateriaPrimaRequestDTO requestDTO);
 }

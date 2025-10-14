@@ -1,12 +1,14 @@
 package com.dcriar.api.hateous.production.model;
 
-import com.dcriar.api.dto.response.production.DetalhesCorteDTO;
+import com.dcriar.api.dto.response.production.DetalhesCorteResponseDTO;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
@@ -17,8 +19,10 @@ import java.util.List;
 /**
  * Modelo de representação HATEOAS para uma Ordem de Produção.
  */
-@Data
+@Getter
+@Setter
 @EqualsAndHashCode(callSuper = false)
+@Builder
 @JsonRootName(value = "ordemDeProducao")
 @Relation(collectionRelation = "ordensDeProducao", itemRelation = "ordemDeProducao")
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -58,5 +62,5 @@ public class OrdemDeProducaoModel extends RepresentationModel<OrdemDeProducaoMod
     private Boolean rotacionado;
 
     @Schema(description = "Detalhes sobre a otimização do corte, se aplicável.", nullable = true)
-    private DetalhesCorteDTO detalhesCorte;
+    private DetalhesCorteResponseDTO detalhesCorte;
 }

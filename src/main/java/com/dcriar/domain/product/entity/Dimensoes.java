@@ -23,13 +23,13 @@ import java.math.BigDecimal;
 public class Dimensoes {
 
     /**
-     * A largura do item em centímetros.
+     * Largura do item em centímetros. Valor pode ser nulo se não informado.
      */
     @Column(name = "largura_cm_unitaria", precision = 10, scale = 2)
     private BigDecimal larguraCm;
 
     /**
-     * O comprimento do item em centímetros.
+     * Comprimento do item em centímetros. Valor pode ser nulo se não informado.
      */
     @Column(name = "comprimento_cm_unitario", precision = 10, scale = 2)
     private BigDecimal comprimentoCm;

@@ -1,6 +1,6 @@
 package com.dcriar.exception.handler;
 
-import com.dcriar.api.dto.response.ErrorDTO;
+import com.dcriar.api.dto.response.ErrorResponseDTO;
 import com.dcriar.exception.custom.*;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * Handler de exceções global para toda a aplicação.
  * <p>
  * Anotado com {@link ControllerAdvice}, ele intercepta exceções lançadas pelos controllers
- * e as converte em respostas HTTP padronizadas no formato {@link ErrorDTO}.
+ * e as converte em respostas HTTP padronizadas no formato {@link ErrorResponseDTO}.
  * Isso garante que a API sempre retorne respostas de erro consistentes e estruturadas.
  */
 @Slf4j
@@ -40,10 +40,10 @@ public class GlobalExceptionHandler {
      * e {@link SaleNotFoundException}.
      *
      * @param ex A exceção de "não encontrado" lançada.
-     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 404.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 404.
      */
     @ExceptionHandler({ProdutoNotFoundException.class, CanalVendaNotFoundException.class, LoteMateriaPrimaNotFoundException.class, TipoMateriaPrimaNotFoundException.class, SaleNotFoundException.class})
-    public ResponseEntity<ErrorDTO> handleNotFoundExceptions(RuntimeException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleNotFoundExceptions(RuntimeException ex) {
         String key = "id";
         String value = "N/A";
 
@@ -62,10 +62,10 @@ public class GlobalExceptionHandler {
      * e {@link PrecoVarejoNaoDefinidoException}.
      *
      * @param ex A exceção de regra de negócio lançada.
-     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 400.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
      */
     @ExceptionHandler({RegraNegocioException.class, EstoqueRegraNegocioException.class, PrecoVarejoNaoDefinidoException.class})
-    public ResponseEntity<ErrorDTO> handleBusinessRuleExceptions(RuntimeException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, Map.of("info", ex.getMessage()));
     }
 
@@ -75,10 +75,10 @@ public class GlobalExceptionHandler {
      * e {@link TipoMateriaPrimaEmUsoException}.
      *
      * @param ex A exceção de conflito lançada.
-     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 409.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 409.
      */
     @ExceptionHandler({TipoMateriaPrimaAlreadyExistsException.class, ProdutoEmUsoException.class, TipoMateriaPrimaEmUsoException.class})
-    public ResponseEntity<ErrorDTO> handleConflictExceptions(RuntimeException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
         if (ex instanceof TipoMateriaPrimaAlreadyExistsException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof ProdutoEmUsoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("entidadesEmUso", e.getEntidadeIds().toString()); }
@@ -92,10 +92,10 @@ public class GlobalExceptionHandler {
      * Intercepta {@link ProdutoInvalidoException}.
      *
      * @param ex A exceção {@link ProdutoInvalidoException} lançada.
-     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 400 e detalhes dos erros.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400 e detalhes dos erros.
      */
     @ExceptionHandler(ProdutoInvalidoException.class)
-    public ResponseEntity<ErrorDTO> handleMultiFieldValidation(ProdutoInvalidoException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleMultiFieldValidation(ProdutoInvalidoException ex) {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, ex.getErrors());
     }
 
@@ -104,10 +104,10 @@ public class GlobalExceptionHandler {
      * Intercepta {@link EstoqueInsuficienteParaMovimentacaoException} e {@link EstoqueInsuficienteCanalException}.
      *
      * @param ex A exceção de estoque insuficiente lançada.
-     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 400 e detalhes do estoque.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400 e detalhes do estoque.
      */
     @ExceptionHandler({EstoqueInsuficienteParaMovimentacaoException.class, EstoqueInsuficienteCanalException.class})
-    public ResponseEntity<ErrorDTO> handleInsufficientStock(RuntimeException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleInsufficientStock(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
         if (ex instanceof EstoqueInsuficienteParaMovimentacaoException e) {
             details.put("loteId", String.valueOf(e.getLoteId()));
@@ -128,13 +128,13 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata erros de validação de argumentos de método ({@code @Valid}) (HTTP 400 Bad Request).
-     * Converte os erros de validação do Spring em um mapa de detalhes para o {@link ErrorDTO}.
+     * Converte os erros de validação do Spring em um mapa de detalhes para o {@link ErrorResponseDTO}.
      *
      * @param ex A exceção {@link MethodArgumentNotValidException} lançada.
-     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 400 e detalhes dos erros de campo.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400 e detalhes dos erros de campo.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorDTO> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
         ex.getBindingResult().getGlobalErrors().forEach(error -> errors.put(error.getObjectName(), error.getDefaultMessage()));
@@ -146,10 +146,10 @@ public class GlobalExceptionHandler {
      * Fornece detalhes sobre o campo que causou o erro de formato, se disponível.
      *
      * @param ex A exceção {@link HttpMessageNotReadableException} lançada.
-     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 400.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorDTO> handleMalformedJson(HttpMessageNotReadableException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleMalformedJson(HttpMessageNotReadableException ex) {
         String msg = "JSON malformado ou sintaxe inválida na requisição.";
         String detalhe;
         if (ex.getMostSpecificCause() instanceof InvalidFormatException invalidFormat) {
@@ -168,10 +168,10 @@ public class GlobalExceptionHandler {
      * Informa quais métodos HTTP são permitidos para o recurso.
      *
      * @param ex A exceção {@link HttpRequestMethodNotSupportedException} lançada.
-     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 405.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 405.
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ErrorDTO> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
         String msg = String.format("Método HTTP '%s' não permitido para este recurso.", ex.getMethod());
         String metodosPermitidos = Objects.requireNonNull(ex.getSupportedHttpMethods()).stream().map(HttpMethod::name).collect(Collectors.joining(", "));
         return buildErrorResponse(msg, HttpStatus.METHOD_NOT_ALLOWED, Map.of("metodosPermitidos", metodosPermitidos));
@@ -182,10 +182,10 @@ public class GlobalExceptionHandler {
      * Retorna HTTP 500, pois este é um erro inesperado do lado do servidor.
      *
      * @param ex A exceção {@link JsonMergeException} lançada.
-     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 500.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 500.
      */
     @ExceptionHandler(JsonMergeException.class)
-    public ResponseEntity<ErrorDTO> handleJsonMergeException(JsonMergeException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleJsonMergeException(JsonMergeException ex) {
         log.error("Falha ao mesclar JSON para operação PATCH: ", ex);
         String msg = "Ocorreu um erro interno ao processar a atualização. A estrutura dos dados enviados pode ser inválida.";
         return buildErrorResponse(msg, HttpStatus.INTERNAL_SERVER_ERROR, Map.of("detalhe", ex.getMessage()));
@@ -196,10 +196,10 @@ public class GlobalExceptionHandler {
      * Registra a exceção e retorna uma mensagem de erro genérica para o cliente.
      *
      * @param ex A exceção genérica capturada.
-     * @return Um {@link ResponseEntity} contendo um {@link ErrorDTO} com status 500.
+     * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 500.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorDTO> handleGenericException(Exception ex) {
+    public ResponseEntity<ErrorResponseDTO> handleGenericException(Exception ex) {
         log.error("Erro inesperado: ", ex);
         String msg = "Ocorreu um erro inesperado. Tente novamente mais tarde.";
         return buildErrorResponse(msg, HttpStatus.INTERNAL_SERVER_ERROR, Map.of("exception", ex.getClass().getSimpleName()));
@@ -215,10 +215,10 @@ public class GlobalExceptionHandler {
      * @param message A mensagem principal do erro.
      * @param status O status HTTP a ser retornado.
      * @param details Um mapa de detalhes adicionais do erro.
-     * @return Um {@link ResponseEntity} contendo o {@link ErrorDTO} e o status HTTP.
+     * @return Um {@link ResponseEntity} contendo o {@link ErrorResponseDTO} e o status HTTP.
      */
-    private ResponseEntity<ErrorDTO> buildErrorResponse(String message, HttpStatus status, Map<String, String> details) {
-        ErrorDTO dto = new ErrorDTO(Instant.now(), status.value(), status.getReasonPhrase(), message, details);
+    private ResponseEntity<ErrorResponseDTO> buildErrorResponse(String message, HttpStatus status, Map<String, String> details) {
+        ErrorResponseDTO dto = new ErrorResponseDTO(Instant.now(), status.value(), status.getReasonPhrase(), message, details);
         return new ResponseEntity<>(dto, status);
     }
 
@@ -229,9 +229,9 @@ public class GlobalExceptionHandler {
      * @param ex A exceção que foi capturada.
      * @param status O status HTTP a ser retornado.
      * @param details Um mapa de detalhes adicionais do erro.
-     * @return Um {@link ResponseEntity} contendo o {@link ErrorDTO} e o status HTTP.
+     * @return Um {@link ResponseEntity} contendo o {@link ErrorResponseDTO} e o status HTTP.
      */
-    private ResponseEntity<ErrorDTO> buildErrorResponse(Exception ex, HttpStatus status, Map<String, String> details) {
+    private ResponseEntity<ErrorResponseDTO> buildErrorResponse(Exception ex, HttpStatus status, Map<String, String> details) {
         return buildErrorResponse(ex.getMessage(), status, details);
     }
 

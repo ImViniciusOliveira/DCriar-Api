@@ -1,5 +1,6 @@
 package com.dcriar.domain.production.entity;
 
+import com.dcriar.api.dto.request.production.OrdemDeProducaoRequestDTO;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
@@ -120,6 +121,58 @@ public class OrdemDeProducao {
     @Column(name = "rotacionado")
     private boolean rotacionado;
 
+    /**
+     * Cria uma instância de OrdemDeProducao a partir do DTO de request, centralizando regras de negócio de criação.
+     * Utilize este método na service para garantir padronização e validações extras.
+     *
+     * @param dto DTO de request com os dados da ordem de produção
+     * @param produto Produto já carregado da base
+     * @param lotesConsumidos Set de LoteMateriaPrima já carregados da base
+     * @param margens Margens de segurança para a ordem de produção
+     * @return Nova instância de OrdemDeProducao
+     */
+    public static OrdemDeProducao from(OrdemDeProducaoRequestDTO dto, Produto produto, Set<LoteMateriaPrima> lotesConsumidos, Margens margens) {
+        return OrdemDeProducao.builder()
+                .produto(produto)
+                .lotesConsumidos(lotesConsumidos)
+                .canalVendaDestinoId(dto.getCanalVendaDestinoId())
+                .quantidadeProduzida(dto.getQuantidadeProduzida())
+                .modoCalculo(ModoCalculo.valueOf(dto.getModoCalculo()))
+                .margens(margens)
+                .larguraFinalCm(dto.getLarguraFinalCm())
+                .comprimentoFinalCm(dto.getComprimentoFinalCm())
+                .motivo(dto.getMotivo())
+                .rotacionado(dto.isRotacionado())
+                .build();
+    }
+
+    /**
+     * Atualiza os campos da OrdemDeProducao a partir do DTO de request, centralizando regras de negócio de atualização.
+     * Utilize este método na service para garantir padronização e validações extras.
+     *
+     * @param dto DTO de request com os dados atualizados
+     * @param produto Produto já carregado da base
+     * @param lotesConsumidos Set de LoteMateriaPrima já carregados da base
+     * @param margens Margens de segurança para a ordem de produção
+     */
+    public void updateFrom(OrdemDeProducaoRequestDTO dto, Produto produto, Set<LoteMateriaPrima> lotesConsumidos, Margens margens) {
+        this.produto = produto;
+        this.lotesConsumidos = lotesConsumidos;
+        this.canalVendaDestinoId = dto.getCanalVendaDestinoId();
+        this.quantidadeProduzida = dto.getQuantidadeProduzida();
+        this.modoCalculo = ModoCalculo.valueOf(dto.getModoCalculo());
+        this.margens = margens;
+        this.larguraFinalCm = dto.getLarguraFinalCm();
+        this.comprimentoFinalCm = dto.getComprimentoFinalCm();
+        this.motivo = dto.getMotivo();
+        this.rotacionado = dto.isRotacionado();
+    }
+
+    /**
+     * Adiciona um registro de corte a esta ordem de produção e estabelece a relação bidirecional.
+     *
+     * @param corte O corte a ser adicionado.
+     */
     public void addCorteRealizado(CorteRealizado corte) {
         cortesRealizados.add(corte);
         corte.setOrdemDeProducao(this);

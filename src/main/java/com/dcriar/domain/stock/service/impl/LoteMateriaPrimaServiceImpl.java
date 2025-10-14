@@ -50,6 +50,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     /**
      * Cria um novo lote de matéria-prima no sistema.
      * <p>
+     * Utiliza o método {@link LoteMateriaPrima#from} para centralizar regras de negócio de criação.
      * Associa o lote a um tipo de matéria-prima existente e registra uma movimentação
      * inicial de entrada (compra) com o custo por unidade base calculado.
      *
@@ -64,21 +65,17 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
                 .orElseThrow(() -> new TipoMateriaPrimaNotFoundException(requestDTO.getTipoMateriaPrimaId()));
 
-        LoteMateriaPrima novoLote = LoteMateriaPrima.builder()
-                .tipoMateriaPrima(tipoMateriaPrima)
-                .unidadeDeEstoque(requestDTO.getUnidadeDeEstoque())
-                .atributos(requestDTO.getAtributos())
-                .build();
+        LoteMateriaPrima novoLote = LoteMateriaPrima.from(requestDTO, tipoMateriaPrima);
 
         BigDecimal custoPorUnidadeBase = calcularCustoPorUnidadeBase(requestDTO, tipoMateriaPrima);
 
-        MovimentacaoEstoqueLote movimentacaoInicial = MovimentacaoEstoqueLote.builder()
-                .lote(novoLote)
+        MovimentacaoRequestDTO movimentacaoDTO = MovimentacaoRequestDTO.builder()
                 .tipo(TipoMovimentacao.ENTRADA_COMPRA)
                 .quantidade(requestDTO.getQuantidadeInicial())
                 .motivo(requestDTO.getMotivo() != null ? requestDTO.getMotivo() : "Entrada inicial do lote no sistema.")
-                .custoPorUnidadeBase(custoPorUnidadeBase)
                 .build();
+        MovimentacaoEstoqueLote movimentacaoInicial = MovimentacaoEstoqueLote.from(movimentacaoDTO, novoLote);
+        movimentacaoInicial.setCustoPorUnidadeBase(custoPorUnidadeBase);
 
         novoLote.getMovimentacoes().add(movimentacaoInicial);
         LoteMateriaPrima loteSalvo = loteMateriaPrimaRepository.save(novoLote);
@@ -86,6 +83,34 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(loteSalvo);
         responseDTO.setSaldoEstoque(requestDTO.getQuantidadeInicial());
 
+        return responseDTO;
+    }
+
+    /**
+     * Atualiza um lote de matéria-prima existente no sistema.
+     * <p>
+     * Utiliza o método {@link LoteMateriaPrima#updateFrom} para centralizar regras de negócio de atualização.
+     *
+     * @param id O ID do lote a ser atualizado.
+     * @param requestDTO O DTO com os dados para atualização do lote.
+     * @return O {@link LoteMateriaPrimaResponseDTO} do lote atualizado.
+     * @throws LoteMateriaPrimaNotFoundException se o lote não for encontrado.
+     * @throws TipoMateriaPrimaNotFoundException se o tipo de matéria-prima especificado não for encontrado.
+     */
+    @Override
+    @Transactional
+    public LoteMateriaPrimaResponseDTO update(Long id, LoteMateriaPrimaRequestDTO requestDTO) {
+        LoteMateriaPrima lote = findLoteById(id);
+        TipoMateriaPrima tipoMateriaPrima = null;
+        if (requestDTO.getTipoMateriaPrimaId() != null) {
+            tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
+                    .orElseThrow(() -> new TipoMateriaPrimaNotFoundException(requestDTO.getTipoMateriaPrimaId()));
+        }
+        lote.updateFrom(requestDTO, tipoMateriaPrima);
+        LoteMateriaPrima loteAtualizado = loteMateriaPrimaRepository.save(lote);
+        BigDecimal saldo = calcularSaldo(loteAtualizado);
+        LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(loteAtualizado);
+        responseDTO.setSaldoEstoque(saldo);
         return responseDTO;
     }
 

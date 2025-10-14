@@ -4,7 +4,7 @@ import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
-import com.dcriar.api.dto.response.product.ProdutoEstoqueDTO;
+import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
 
 import java.util.List;
 
@@ -55,5 +55,5 @@ public interface EstoqueProdutoService {
      *
      * @return Uma lista de DTOs, onde cada DTO contém o ID do produto e uma lista de seus estoques por canal.
      */
-    List<ProdutoEstoqueDTO> listarEstoqueDeTodosOsProdutosPorCanal();
+    List<ProdutoEstoqueResponseDTO> listarEstoqueDeTodosOsProdutosPorCanal();
 }

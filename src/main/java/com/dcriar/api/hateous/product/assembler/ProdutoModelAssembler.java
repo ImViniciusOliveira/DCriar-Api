@@ -17,16 +17,49 @@ import java.net.URI;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+/**
+ * Assembler responsável por converter {@link ProdutoResponseDTO} em {@link ProdutoModel},
+ * adicionando links HATEOAS para navegação entre endpoints relacionados ao produto.
+ * <p>
+ * Utilizado nas respostas das controllers para enriquecer os modelos retornados com links de auto, edição,
+ * exclusão, navegação e recursos relacionados (estoque, movimentações, tipos de matéria-prima).
+ * <p>
+ * Exemplo de uso:
+ * <pre>
+ *   ProdutoModel model = produtoModelAssembler.toModel(produtoResponseDTO);
+ * </pre>
+ */
 @Component
 public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<ProdutoResponseDTO, ProdutoModel> {
 
     private final ProdutoMapper mapper;
 
+    /**
+     * Cria o assembler com o mapper de Produto.
+     * @param mapper Mapper para conversão de DTO para Model
+     */
     public ProdutoModelAssembler(ProdutoMapper mapper) {
         super(ProdutoController.class, ProdutoModel.class);
         this.mapper = mapper;
     }
 
+    /**
+     * Converte um {@link ProdutoResponseDTO} em {@link ProdutoModel},
+     * adicionando links HATEOAS para operações e recursos relacionados.
+     * <p>
+     * Links adicionados:
+     * <ul>
+     *   <li>Auto (self)</li>
+     *   <li>Atualizar produto</li>
+     *   <li>Deletar produto</li>
+     *   <li>Listar todos os produtos</li>
+     *   <li>Buscar tipos de matéria-prima</li>
+     *   <li>Estoques do produto</li>
+     *   <li>Histórico de movimentações</li>
+     * </ul>
+     * @param dto DTO de resposta do produto
+     * @return Modelo HATEOAS enriquecido
+     */
     @Override
     @NonNull
     public ProdutoModel toModel(@NonNull ProdutoResponseDTO dto) {
@@ -48,6 +81,16 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
         return model;
     }
 
+    /**
+     * Cria uma resposta HTTP 201 (Created) com o modelo HATEOAS do produto e o header Location.
+     * <p>
+     * Exemplo de uso:
+     * <pre>
+     *   ResponseEntity<ProdutoModel> response = produtoModelAssembler.toCreatedResponseEntity(dto);
+     * </pre>
+     * @param dto DTO de resposta do produto
+     * @return ResponseEntity com status 201 e modelo HATEOAS no corpo
+     */
     public ResponseEntity<ProdutoModel> toCreatedResponseEntity(@NonNull ProdutoResponseDTO dto) {
         ProdutoModel model = toModel(dto);
 

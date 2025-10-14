@@ -176,8 +176,20 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <!-- ADICIONADO: Plugin para gerar a documentação Javadoc -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version> <!-- Versão recente e estável -->
+                <configuration>
+                    <source>${java.version}</source> <!-- Garante que o Javadoc use a mesma versão do Java -->
+                    <!-- A opção abaixo desativa checagens muito estritas de formatação do Javadoc.
+                         É útil para começar, pois evita que o build falhe por causa de um comentário
+                         mal formatado. Pode ser removida no futuro para forçar um padrão mais rigoroso. -->
+                    <doclint>none</doclint>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
 </project>
-

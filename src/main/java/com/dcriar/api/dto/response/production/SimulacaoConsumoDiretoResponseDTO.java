@@ -3,14 +3,19 @@ package com.dcriar.api.dto.response.production;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
 /**
- * DTO para a resposta da simulação de uma produção baseada em consumo direto.
+ * Data Transfer Object (DTO) para a resposta da simulação de uma produção por consumo direto.
+ * <p>
+ * Este DTO informa a quantidade total de matéria-prima que seria necessária para produzir
+ * uma determinada quantidade de um produto, sem efetivamente movimentar o estoque.
  */
-@Data
+@Getter
+@Setter
 @Builder
 public class SimulacaoConsumoDiretoResponseDTO {
 

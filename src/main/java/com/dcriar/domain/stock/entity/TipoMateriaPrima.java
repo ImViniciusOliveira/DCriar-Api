@@ -1,5 +1,6 @@
 package com.dcriar.domain.stock.entity;
 
+import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import jakarta.persistence.*;
 import lombok.*;
@@ -40,4 +41,39 @@ public class TipoMateriaPrima {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private UnidadeDeMedida unidadeDeConsumo;
+
+    /**
+     * Cria uma instância de TipoMateriaPrima a partir do DTO de request, centralizando regras de negócio de criação.
+     * <p>
+     * Este método deve ser utilizado pela camada de service para garantir que toda lógica de normalização,
+     * validação extra e defaults seja aplicada de forma consistente.
+     *
+     * @param dto DTO de request com os dados para criação
+     * @return Nova instância de TipoMateriaPrima
+     */
+    public static TipoMateriaPrima from(TipoMateriaPrimaRequestDTO dto) {
+        // Centralize regras de negócio aqui (ex: normalização, validação extra)
+        return TipoMateriaPrima.builder()
+                .nome(dto.getNome() != null ? dto.getNome().trim() : null)
+                .unidadeDeConsumo(dto.getUnidadeDeConsumo())
+                .build();
+    }
+
+    /**
+     * Atualiza os campos da entidade a partir do DTO de request, centralizando regras de negócio de atualização.
+     * <p>
+     * Este método deve ser utilizado pela camada de service para garantir que toda lógica de atualização
+     * seja aplicada de forma consistente.
+     *
+     * @param dto DTO de request com os dados para atualização
+     */
+    public void updateFrom(TipoMateriaPrimaRequestDTO dto) {
+        // Centralize regras de negócio para atualização
+        if (dto.getNome() != null) {
+            this.nome = dto.getNome().trim();
+        }
+        if (dto.getUnidadeDeConsumo() != null) {
+            this.unidadeDeConsumo = dto.getUnidadeDeConsumo();
+        }
+    }
 }

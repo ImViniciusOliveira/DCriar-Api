@@ -39,6 +39,22 @@ public class SaleModelAssembler extends RepresentationModelAssemblerSupport<Sale
         this.saleItemModelAssembler = saleItemModelAssembler;
     }
 
+    /**
+     * Converte um {@link SaleResponseDTO} em {@link SaleModel},
+     * adicionando links HATEOAS e montando os itens da venda.
+     * <p>
+     * Links adicionados:
+     * <ul>
+     *   <li>Auto (self)</li>
+     *   <li>Outros links relevantes do recurso de venda</li>
+     * </ul>
+     * Exemplo de uso:
+     * <pre>
+     *   SaleModel model = saleModelAssembler.toModel(saleResponseDTO);
+     * </pre>
+     * @param dto DTO de resposta da venda
+     * @return Modelo HATEOAS enriquecido
+     */
     @Override
     @NonNull
     public SaleModel toModel(@NonNull SaleResponseDTO dto) {

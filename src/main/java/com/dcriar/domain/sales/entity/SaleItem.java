@@ -1,5 +1,6 @@
 package com.dcriar.domain.sales.entity;
 
+import com.dcriar.api.dto.request.sales.SaleItemRequestDTO;
 import com.dcriar.domain.product.entity.Produto;
 import jakarta.persistence.*;
 import lombok.*;
@@ -63,4 +64,42 @@ public class SaleItem {
      */
     @Column(name = "total_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalPrice;
+
+    /**
+     * Cria uma instância de SaleItem a partir do DTO de request e do Produto resolvido.
+     * <p>
+     * Este método centraliza regras de negócio de criação do item, como cálculo do preço total.
+     * Deve ser utilizado pela service para garantir consistência.
+     *
+     * @param dto DTO de request do item
+     * @param produto Produto resolvido
+     * @param unitPrice Preço unitário do produto no momento da venda
+     * @return SaleItem criado
+     */
+    public static SaleItem from(SaleItemRequestDTO dto, Produto produto, BigDecimal unitPrice) {
+        BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(dto.getQuantidade()));
+        return SaleItem.builder()
+                .produto(produto)
+                .quantity(dto.getQuantidade())
+                .unitPrice(unitPrice)
+                .totalPrice(totalPrice)
+                .build();
+    }
+
+    /**
+     * Atualiza os campos do SaleItem existente a partir do DTO de request e do Produto resolvido.
+     * <p>
+     * Este método centraliza regras de negócio de atualização do item, como recálculo do preço total.
+     * Deve ser utilizado pela service para garantir consistência.
+     *
+     * @param dto DTO de request do item
+     * @param produto Produto resolvido
+     * @param unitPrice Preço unitário do produto no momento da venda
+     */
+    public void updateFrom(SaleItemRequestDTO dto, Produto produto, BigDecimal unitPrice) {
+        this.produto = produto;
+        this.quantity = dto.getQuantidade();
+        this.unitPrice = unitPrice;
+        this.totalPrice = unitPrice.multiply(BigDecimal.valueOf(dto.getQuantidade()));
+    }
 }

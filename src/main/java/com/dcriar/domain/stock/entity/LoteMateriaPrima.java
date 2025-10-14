@@ -1,5 +1,6 @@
 package com.dcriar.domain.stock.entity;
 
+import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
@@ -86,4 +87,47 @@ public class LoteMateriaPrima {
      */
     @Transient
     private BigDecimal saldoCalculado;
+
+    /**
+     * Cria uma instância de {@link LoteMateriaPrima} a partir de um DTO de request e do tipo de matéria-prima.
+     * <p>
+     * Este método deve ser utilizado pela camada de serviço para centralizar regras de negócio de criação.
+     * Garante que toda lógica relacionada à criação do lote fique encapsulada na entidade.
+     *
+     * @param dto DTO de request contendo os dados para criação do lote
+     * @param tipoMateriaPrima Tipo de matéria-prima já validado e recuperado
+     * @return Nova instância de {@link LoteMateriaPrima} pronta para persistência
+     */
+    public static LoteMateriaPrima from(LoteMateriaPrimaRequestDTO dto, TipoMateriaPrima tipoMateriaPrima) {
+        // Centralize regras de negócio aqui (ex: normalização, validação extra, defaults)
+        return LoteMateriaPrima.builder()
+                .tipoMateriaPrima(tipoMateriaPrima)
+                .unidadeDeEstoque(dto.getUnidadeDeEstoque())
+                .atributos(dto.getAtributos())
+                // Adicione outros campos conforme necessário
+                .build();
+    }
+
+    /**
+     * Atualiza os campos da entidade a partir de um DTO de request e do tipo de matéria-prima.
+     * <p>
+     * Este método deve ser utilizado pela camada de serviço para centralizar regras de negócio de atualização.
+     * Apenas campos presentes no DTO serão atualizados, mantendo a lógica encapsulada na entidade.
+     *
+     * @param dto DTO de request contendo os dados para atualização
+     * @param tipoMateriaPrima Tipo de matéria-prima já validado e recuperado (pode ser nulo)
+     */
+    public void updateFrom(LoteMateriaPrimaRequestDTO dto, TipoMateriaPrima tipoMateriaPrima) {
+        // Centralize regras de negócio para atualização
+        if (tipoMateriaPrima != null) {
+            this.tipoMateriaPrima = tipoMateriaPrima;
+        }
+        if (dto.getUnidadeDeEstoque() != null) {
+            this.unidadeDeEstoque = dto.getUnidadeDeEstoque();
+        }
+        if (dto.getAtributos() != null) {
+            this.atributos = dto.getAtributos();
+        }
+        // Atualize outros campos conforme necessário
+    }
 }

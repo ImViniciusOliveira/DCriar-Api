@@ -83,6 +83,8 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
      * Cria um novo tipo de matéria-prima no sistema.
      * <p>
      * Antes de criar, verifica se já existe um tipo de matéria-prima com o mesmo nome.
+     * A criação da entidade é feita pelo método de fábrica {@link TipoMateriaPrima#from(TipoMateriaPrimaRequestDTO)},
+     * que centraliza regras de negócio como normalização e validação dos campos.
      *
      * @param requestDTO O DTO com os dados para a criação do tipo de matéria-prima.
      * @return O {@link TipoMateriaPrimaResponseDTO} do tipo recém-criado.
@@ -92,12 +94,7 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     @Transactional
     public TipoMateriaPrimaResponseDTO create(TipoMateriaPrimaRequestDTO requestDTO) {
         validateNomeDisponivel(requestDTO.getNome());
-
-        TipoMateriaPrima tipo = TipoMateriaPrima.builder()
-                .nome(requestDTO.getNome())
-                .unidadeDeConsumo(requestDTO.getUnidadeDeConsumo())
-                .build();
-
+        TipoMateriaPrima tipo = TipoMateriaPrima.from(requestDTO);
         TipoMateriaPrima salvo = tipoMateriaPrimaRepository.save(tipo);
         return tipoMateriaPrimaMapper.toResponseDTO(salvo);
     }
@@ -107,6 +104,8 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
      * <p>
      * Permite a atualização do nome e da unidade de consumo. Se o nome for alterado,
      * verifica se o novo nome já não está em uso por outro tipo de matéria-prima.
+     * A atualização dos campos é feita pelo método {@link TipoMateriaPrima#updateFrom(TipoMateriaPrimaRequestDTO)},
+     * que centraliza regras de negócio como normalização e validação dos campos.
      *
      * @param id O ID do tipo de matéria-prima a ser atualizado.
      * @param requestDTO O DTO com os novos dados.
@@ -118,16 +117,10 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     @Transactional
     public TipoMateriaPrimaResponseDTO update(Long id, TipoMateriaPrimaRequestDTO requestDTO) {
         TipoMateriaPrima tipo = findTipoById(id);
-
         if (requestDTO.getNome() != null && !tipo.getNome().equalsIgnoreCase(requestDTO.getNome())) {
             validateNomeDisponivel(requestDTO.getNome());
-            tipo.setNome(requestDTO.getNome());
         }
-
-        if (requestDTO.getUnidadeDeConsumo() != null) {
-            tipo.setUnidadeDeConsumo(requestDTO.getUnidadeDeConsumo());
-        }
-
+        tipo.updateFrom(requestDTO);
         TipoMateriaPrima atualizado = tipoMateriaPrimaRepository.save(tipo);
         return tipoMateriaPrimaMapper.toResponseDTO(atualizado);
     }

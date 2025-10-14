@@ -1,5 +1,6 @@
 package com.dcriar.domain.product.entity;
 
+import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import jakarta.persistence.*;
 import lombok.*;
@@ -65,4 +66,37 @@ public class MovimentacaoEstoqueProduto {
      */
     @Column(length = 254)
     private String motivo;
+
+    /**
+     * Cria uma instância de MovimentacaoEstoqueProduto a partir do DTO de request, centralizando regras de negócio de criação.
+     * <p>
+     * Este método deve ser utilizado pela service para garantir consistência na criação de registros.
+     *
+     * @param dto     DTO de request contendo os dados para criação
+     * @param produto Produto já carregado da base
+     * @return Nova instância de MovimentacaoEstoqueProduto
+     */
+    public static MovimentacaoEstoqueProduto from(MovimentacaoEstoqueProdutoRequestDTO dto, Produto produto) {
+        return MovimentacaoEstoqueProduto.builder()
+                .produto(produto)
+                .tipo(TipoMovimentacaoProduto.valueOf(dto.getTipo()))
+                .quantidade(dto.getQuantidade())
+                .motivo(dto.getMotivo())
+                .build();
+    }
+
+    /**
+     * Atualiza os campos da movimentação a partir do DTO de request, centralizando regras de negócio de atualização.
+     * <p>
+     * Este método deve ser utilizado pela service para garantir consistência na atualização de registros.
+     *
+     * @param dto     DTO de request contendo os dados para atualização
+     * @param produto Produto já carregado da base
+     */
+    public void updateFrom(MovimentacaoEstoqueProdutoRequestDTO dto, Produto produto) {
+        this.produto = produto;
+        this.tipo = TipoMovimentacaoProduto.valueOf(dto.getTipo());
+        this.quantidade = dto.getQuantidade();
+        this.motivo = dto.getMotivo();
+    }
 }

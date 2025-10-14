@@ -17,7 +17,6 @@ import com.dcriar.exception.custom.ProdutoEmUsoException;
 import com.dcriar.exception.custom.ProdutoInvalidoException;
 import com.dcriar.exception.custom.ProdutoNotFoundException;
 import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,6 +31,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Implementação do serviço de gerenciamento de produtos.
+ * <p>
+ * Esta classe contém a lógica de negócio para operações de CRUD em produtos,
+ * além de orquestrar validações, manipulação de arquivos de imagem e
+ * enriquecimento dos dados de resposta com informações de estoque.
+ */
 @Service
 @RequiredArgsConstructor
 public class ProdutoServiceImpl implements ProdutoService {
@@ -43,9 +49,13 @@ public class ProdutoServiceImpl implements ProdutoService {
     private final OrdemDeProducaoRepository ordemDeProducaoRepository;
     private final ProdutoMapper produtoMapper;
     private final FileStorageService fileStorageService;
-    private final ObjectMapper objectMapper;
-    private final Validator validator;
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Cada produto na página de resposta é enriquecido com informações de estoque
+     * e a URL completa para a foto principal.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<ProdutoResponseDTO> findAll(Pageable pageable) {
@@ -53,6 +63,12 @@ public class ProdutoServiceImpl implements ProdutoService {
         return produtoPage.map(this::mapAndEnrichProduto);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * O produto retornado é enriquecido com informações de estoque
+     * e a URL completa para a foto principal.
+     */
     @Override
     @Transactional(readOnly = true)
     public ProdutoResponseDTO findById(Long id) {
@@ -60,6 +76,16 @@ public class ProdutoServiceImpl implements ProdutoService {
         return mapAndEnrichProduto(produto);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Antes de salvar, o método valida regras de negócio (nome e SKU únicos),
+     * associa o tipo de matéria-prima e processa a URL da imagem do produto,
+     * extraindo apenas o nome do arquivo para armazenamento.
+     *
+     * @throws TipoMateriaPrimaNotFoundException se o tipo de matéria-prima especificado não for encontrado.
+     * @throws ProdutoInvalidoException se as regras de negócio (nome/SKU único) forem violadas.
+     */
     @Override
     @Transactional
     public ProdutoResponseDTO create(ProdutoRequestDTO requestDTO) {
@@ -81,6 +107,18 @@ public class ProdutoServiceImpl implements ProdutoService {
         return findById(produtoSalvo.getId());
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Realiza a validação de regras de negócio (nome e SKU únicos, ignorando o próprio produto).
+     * Gerencia o ciclo de vida da foto do produto: se uma nova foto for fornecida,
+     * a antiga é excluída do armazenamento. Se a URL da foto for removida, o arquivo
+     * correspondente também é excluído.
+     *
+     * @throws ProdutoNotFoundException se o produto com o ID fornecido não for encontrado.
+     * @throws TipoMateriaPrimaNotFoundException se o tipo de matéria-prima especificado não for encontrado.
+     * @throws ProdutoInvalidoException se as regras de negócio (nome/SKU único) forem violadas.
+     */
     @Override
     @Transactional
     public ProdutoResponseDTO update(Long id, ProdutoRequestDTO requestDTO) {
@@ -116,6 +154,16 @@ public class ProdutoServiceImpl implements ProdutoService {
         return findById(id);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>Atenção:</b> A lógica para atualização parcial (PATCH) ainda não foi implementada.
+     * O método atualmente retorna {@code null}.
+     *
+     * @param id O ID do produto a ser atualizado.
+     * @param fields Um mapa contendo os nomes dos campos e seus novos valores.
+     * @return Atualmente {@code null}. Deveria retornar o DTO de resposta do produto atualizado.
+     */
     @Override
     @Transactional
     public ProdutoResponseDTO patch(Long id, Map<String, Object> fields) {
@@ -123,6 +171,16 @@ public class ProdutoServiceImpl implements ProdutoService {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Antes de excluir, o método verifica se o produto está em uso em alguma Ordem de Produção.
+     * Se estiver, a exclusão é impedida. Se o produto tiver uma foto associada,
+     * o arquivo correspondente é excluído do armazenamento.
+     *
+     * @throws ProdutoNotFoundException se o produto com o ID fornecido não for encontrado.
+     * @throws ProdutoEmUsoException se o produto estiver vinculado a uma ou mais ordens de produção.
+     */
     @Override
     @Transactional
     public void deleteById(Long id) {
@@ -141,6 +199,20 @@ public class ProdutoServiceImpl implements ProdutoService {
         produtoRepository.delete(produto);
     }
 
+    /**
+     * Mapeia uma entidade {@link Produto} para seu {@link ProdutoResponseDTO} e o enriquece com dados adicionais.
+     * <p>
+     * Este método realiza as seguintes ações:
+     * <ol>
+     *     <li>Converte a entidade Produto para ProdutoResponseDTO.</li>
+     *     <li>Se houver uma foto, constrói a URL de download completa.</li>
+     *     <li>Calcula o estoque físico total, o total distribuído entre os canais e o saldo disponível para alocação.</li>
+     *     <li>Adiciona essas informações de estoque ao DTO.</li>
+     * </ol>
+     *
+     * @param produto A entidade {@link Produto} a ser processada.
+     * @return O {@link ProdutoResponseDTO} enriquecido.
+     */
     private ProdutoResponseDTO mapAndEnrichProduto(Produto produto) {
         ProdutoResponseDTO dto = produtoMapper.toResponseDTO(produto);
 
@@ -167,11 +239,25 @@ public class ProdutoServiceImpl implements ProdutoService {
         return dto;
     }
 
+    /**
+     * Busca uma entidade {@link Produto} pelo seu ID, lançando uma exceção se não for encontrada.
+     *
+     * @param id O ID do produto a ser buscado.
+     * @return A entidade {@link Produto} encontrada.
+     * @throws ProdutoNotFoundException se o produto com o ID especificado não for encontrado.
+     */
     private Produto findProdutoById(Long id) {
         return produtoRepository.findById(id)
                 .orElseThrow(() -> new ProdutoNotFoundException(id));
     }
 
+    /**
+     * Valida regras de negócio para a criação e atualização de produtos, como a unicidade de nome e SKU.
+     *
+     * @param requestDTO O DTO com os dados do produto.
+     * @param produtoId O ID do produto que está sendo atualizado, ou {@code null} se for uma criação.
+     * @throws ProdutoInvalidoException se qualquer uma das regras de negócio for violada. A exceção contém um mapa com os campos e as mensagens de erro.
+     */
     private void validarRegrasDeNegocio(ProdutoRequestDTO requestDTO, Long produtoId) {
         Map<String, String> errors = new HashMap<>();
 

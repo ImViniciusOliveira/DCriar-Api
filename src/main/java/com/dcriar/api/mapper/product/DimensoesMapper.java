@@ -6,7 +6,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 
 /**
- * Mapper para converter a entidade {@link Dimensoes} em seu DTO de resposta.
+ * Mapper para converter a entidade {@link Dimensoes} em seu DTO de resposta {@link DimensoesResponseDTO}.
  * <p>
  * Como os nomes dos campos na entidade e no DTO são idênticos (ex: larguraCm),
  * o MapStruct realiza o mapeamento automaticamente sem a necessidade de anotações @Mapping.
@@ -15,10 +15,10 @@ import org.mapstruct.MappingConstants;
 public interface DimensoesMapper {
 
     /**
-     * Converte a entidade Dimensoes para DimensoesResponseDTO.
+     * Converte a entidade {@link Dimensoes} para {@link DimensoesResponseDTO}.
      *
-     * @param dimensoes entidade de origem
-     * @return DTO de resposta
+     * @param dimensoes A entidade de dimensões a ser convertida.
+     * @return O DTO de resposta correspondente.
      */
     DimensoesResponseDTO toResponseDTO(Dimensoes dimensoes);
 }

@@ -39,6 +39,14 @@ public class ProdutoController {
     private final ProdutoService produtoService;
     private final ProdutoModelAssembler produtoModelAssembler;
 
+    /**
+     * Lista todos os produtos cadastrados de forma paginada.
+     * <p>
+     * Exemplo de uso: GET /api/v1/produtos
+     * @param pageable Parâmetros de paginação e ordenação
+     * @param pagedResourcesAssembler Montador de recursos HATEOAS
+     * @return Página de produtos com links HATEOAS
+     */
     @GetMapping
     @Operation(summary = "Listar todos os produtos de forma paginada")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
@@ -55,6 +63,13 @@ public class ProdutoController {
         return null;
     }
 
+    /**
+     * Busca um produto pelo seu ID.
+     * <p>
+     * Exemplo de uso: GET /api/v1/produtos/{id}
+     * @param id ID do produto
+     * @return Produto encontrado com links HATEOAS
+     */
     @GetMapping("/{id}")
     @Operation(summary = "Buscar produto por ID")
     @ApiResponses(value = {
@@ -66,6 +81,13 @@ public class ProdutoController {
         return produtoModelAssembler.toModel(produto);
     }
 
+    /**
+     * Cria um novo produto.
+     * <p>
+     * Exemplo de uso: POST /api/v1/produtos
+     * @param requestDTO Dados do produto a ser criado
+     * @return Produto criado com links HATEOAS e header Location
+     */
     @PostMapping
     @Operation(summary = "Criar um novo produto")
     @ApiResponses(value = {
@@ -78,6 +100,14 @@ public class ProdutoController {
         return produtoModelAssembler.toCreatedResponseEntity(produtoCriado);
     }
 
+    /**
+     * Atualiza parcialmente um produto existente (PATCH).
+     * <p>
+     * Exemplo de uso: PATCH /api/v1/produtos/{id}
+     * @param id ID do produto
+     * @param fields Campos a serem atualizados
+     * @return Produto atualizado com links HATEOAS
+     */
     @PatchMapping("/{id}")
     @Operation(summary = "Atualizar parcialmente um produto existente (PATCH)",
             description = "Este método permite a atualização de um ou mais campos de um produto. Envie apenas os campos que deseja alterar.")
@@ -112,6 +142,13 @@ public class ProdutoController {
         return produtoModelAssembler.toModel(produtoAtualizado);
     }
 
+    /**
+     * Deleta um produto pelo seu ID.
+     * <p>
+     * Exemplo de uso: DELETE /api/v1/produtos/{id}
+     * @param id ID do produto
+     * @return Resposta sem conteúdo (204) se deletado com sucesso
+     */
     @DeleteMapping("/{id}")
     @Operation(summary = "Deletar um produto")
     @ApiResponses(value = {
