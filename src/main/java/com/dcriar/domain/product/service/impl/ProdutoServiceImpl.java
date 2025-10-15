@@ -18,6 +18,8 @@ import com.dcriar.exception.custom.ProdutoNomeDuplicadoException;
 import com.dcriar.exception.custom.ProdutoNaoEncontradoException;
 import com.dcriar.exception.custom.ProdutoSkuDuplicadoException;
 import com.dcriar.exception.custom.TipoMateriaPrimaNaoEncontradoException;
+import com.dcriar.exception.custom.ProdutoInvalidoException;
+import java.util.HashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -96,6 +98,11 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Override
     @Transactional
     public ProdutoResponseDTO create(ProdutoRequestDTO requestDTO) {
+        // Validação de campos obrigatórios
+        Map<String, String> errors = validarCamposObrigatorios(requestDTO);
+        if (!errors.isEmpty()) {
+            throw new ProdutoInvalidoException("Dados do produto inválidos", errors);
+        }
         // 1. Valida regras de negócio de unicidade para nome e SKU.
         validarRegrasDeNegocio(requestDTO, null);
 
@@ -143,6 +150,11 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Override
     @Transactional
     public ProdutoResponseDTO update(Long id, ProdutoRequestDTO requestDTO) {
+        // Validação de campos obrigatórios
+        Map<String, String> errors = validarCamposObrigatorios(requestDTO);
+        if (!errors.isEmpty()) {
+            throw new ProdutoInvalidoException("Dados do produto inválidos", errors);
+        }
         // 1. Busca o produto e armazena o nome do arquivo da foto antiga.
         Produto produto = findProdutoById(id);
         String oldFotoFileName = produto.getFotoPrincipalUrl();
@@ -325,5 +337,25 @@ public class ProdutoServiceImpl implements ProdutoService {
                 throw new ProdutoSkuDuplicadoException(requestDTO.getSku());
             }
         }
+    }
+
+    /**
+     * Valida campos obrigatórios do produto.
+     * @param requestDTO DTO do produto
+     * @return Mapa de erros (campo -> mensagem)
+     */
+    private Map<String, String> validarCamposObrigatorios(ProdutoRequestDTO requestDTO) {
+        Map<String, String> errors = new HashMap<>();
+        if (requestDTO.getNome() == null || requestDTO.getNome().isBlank()) {
+            errors.put("nome", "Nome do produto é obrigatório");
+        }
+        if (requestDTO.getSku() == null || requestDTO.getSku().isBlank()) {
+            errors.put("sku", "SKU do produto é obrigatório");
+        }
+        if (requestDTO.getTipoMateriaPrimaId() == null) {
+            errors.put("tipoMateriaPrimaId", "Tipo de matéria-prima é obrigatório");
+        }
+        // Adicione outras validações conforme necessário
+        return errors;
     }
 }

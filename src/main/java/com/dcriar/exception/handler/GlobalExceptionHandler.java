@@ -70,8 +70,7 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata exceções de violação de regras de negócio (HTTP 400 Bad Request).
-     * Intercepta {@link RegraNegocioException}, {@link EstoqueRegraNegocioException},
-     * {@link PrecoVarejoNaoDefinidoException}, {@link LoteInvalidoException},
+     * Intercepta {@link PrecoVarejoNaoDefinidoException}, {@link LoteInvalidoException},
      * {@link AtributoLoteInvalidoException}, {@link CalculoCustoIncompativelException},
      * {@link DimensoesManuaisInvalidasException}, {@link MargemInvalidaException},
      * {@link NenhumLoteComEstoqueException}, {@link LotePrincipalNaoEspecificadoException},
@@ -82,7 +81,7 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
      */
     @ExceptionHandler({
-            RegraNegocioException.class, EstoqueRegraNegocioException.class, PrecoVarejoNaoDefinidoException.class, LoteInvalidoException.class,
+            PrecoVarejoNaoDefinidoException.class, LoteInvalidoException.class,
             AtributoLoteInvalidoException.class, CalculoCustoIncompativelException.class, DimensoesManuaisInvalidasException.class,
             MargemInvalidaException.class, NenhumLoteComEstoqueException.class, LotePrincipalNaoEspecificadoException.class,
             ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class
