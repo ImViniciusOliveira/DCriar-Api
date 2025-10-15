@@ -200,7 +200,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
      * @param requestDTO O DTO com os dados da ordem de consumo direto.
      * @return O DTO de resposta da ordem de produção criada.
      * @throws TipoProducaoIncompativelException se o produto não for para consumo direto.
-     * @throws RegraNegocioException se algum dos IDs de lote fornecidos for inválido.
+     * @throws LoteInvalidoException se algum dos IDs de lote fornecidos for inválido.
      * @throws SaldoMateriaPrimaInsuficienteException se o saldo combinado dos lotes de matéria-prima for insuficiente.
      */
     @Override
@@ -214,7 +214,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         Set<LoteMateriaPrima> lotesConsumidos = new HashSet<>(loteMateriaPrimaRepository.findAllById(requestDTO.getLotesConsumidosIds()));
         if (lotesConsumidos.size() != requestDTO.getLotesConsumidosIds().size()) {
-            throw new RegraNegocioException("Um ou mais IDs de lote fornecidos são inválidos.");
+            throw new LoteInvalidoException("Um ou mais IDs de lote fornecidos são inválidos.");
         }
 
         // 2. Valida se o saldo total dos lotes é suficiente.
@@ -521,7 +521,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     public void registrarEntradaProduto(Produto produto, int quantidade, String motivo) {
         MovimentacaoEstoqueProdutoRequestDTO movimentacaoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
                 .produtoId(produto.getId())
-                .tipo(TipoMovimentacaoProduto.ENTRADA_PRODUCAO.name())
+                .tipo(TipoMovimentacaoProduto.SAIDA_PRODUCAO.name())
                 .quantidade(quantidade)
                 .motivo(motivo)
                 .build();

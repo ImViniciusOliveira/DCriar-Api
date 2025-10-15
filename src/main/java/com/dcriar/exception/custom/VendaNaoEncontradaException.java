@@ -15,15 +15,15 @@ public class VendaNaoEncontradaException extends RuntimeException {
     /**
      * O ID da venda que não foi encontrada.
      */
-    private final Long saleId;
+    private final Long VendaId;
 
     /**
      * Constrói a exceção com o ID da venda não encontrada.
      *
-     * @param saleId O ID utilizado na busca que falhou.
+     * @param VendaId O ID utilizado na busca que falhou.
      */
-    public VendaNaoEncontradaException(Long saleId) {
-        super(String.format("Venda não encontrada com o ID: %d", saleId));
-        this.saleId = saleId;
+    public VendaNaoEncontradaException(Long VendaId) {
+        super(String.format("Venda não encontrada com o ID: %d", VendaId));
+        this.VendaId = VendaId;
     }
 }

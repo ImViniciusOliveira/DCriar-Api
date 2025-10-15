@@ -34,37 +34,59 @@ public class GlobalExceptionHandler {
     //region Exceções de Domínio e Negócio
 
     /**
-     * Trata exceções para entidades não encontradas (HTTP 404 Not Found).
+     * Trata exceções para entidades ou recursos não encontrados (HTTP 404 Not Found).
      * Intercepta {@link ProdutoNaoEncontradoException}, {@link CanalVendaNaoEncontradoException},
      * {@link LoteMateriaPrimaNaoEncontradoException}, {@link TipoMateriaPrimaNaoEncontradoException},
-     * e {@link VendaNaoEncontradaException}.
+     * {@link VendaNaoEncontradaException}, {@link ArquivoNaoEncontradoException},
+     * {@link CorteRealizadoNaoEncontradoException}, {@link MovimentacaoEstoqueProdutoNaoEncontradoException},
+     * {@link OrdemDeProducaoNaoEncontradaException}, {@link PrecoNaoEncontradoException} e {@link EstoqueNaoEncontradoException}.
      *
      * @param ex A exceção de "não encontrado" lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 404.
      */
-    @ExceptionHandler({ProdutoNaoEncontradoException.class, CanalVendaNaoEncontradoException.class, LoteMateriaPrimaNaoEncontradoException.class, TipoMateriaPrimaNaoEncontradoException.class, VendaNaoEncontradaException.class})
+    @ExceptionHandler({
+            ProdutoNaoEncontradoException.class, CanalVendaNaoEncontradoException.class, LoteMateriaPrimaNaoEncontradoException.class,
+            TipoMateriaPrimaNaoEncontradoException.class, VendaNaoEncontradaException.class, ArquivoNaoEncontradoException.class,
+            CorteRealizadoNaoEncontradoException.class, MovimentacaoEstoqueProdutoNaoEncontradoException.class,
+            OrdemDeProducaoNaoEncontradaException.class, PrecoNaoEncontradoException.class, EstoqueNaoEncontradoException.class
+    })
     public ResponseEntity<ErrorResponseDTO> handleNotFoundExceptions(RuntimeException ex) {
-        String key = "id";
-        String value = "N/A";
+        Map<String, String> details = new HashMap<>();
 
-        if (ex instanceof ProdutoNaoEncontradoException e) { key = "produtoId"; value = String.valueOf(e.getId()); }
-        else if (ex instanceof CanalVendaNaoEncontradoException e) { key = "canalVendaId"; value = String.valueOf(e.getId()); }
-        else if (ex instanceof LoteMateriaPrimaNaoEncontradoException e) { key = "loteId"; value = String.valueOf(e.getId()); }
-        else if (ex instanceof TipoMateriaPrimaNaoEncontradoException e) { key = "materiaPrimaId"; value = String.valueOf(e.getMateriaPrimaId()); }
-        else if (ex instanceof VendaNaoEncontradaException e) { key = "saleId"; value = String.valueOf(e.getSaleId()); }
+        if (ex instanceof ProdutoNaoEncontradoException e) { details.put("produtoId", String.valueOf(e.getId())); }
+        else if (ex instanceof CanalVendaNaoEncontradoException e) { details.put("canalVendaId", String.valueOf(e.getId())); }
+        else if (ex instanceof LoteMateriaPrimaNaoEncontradoException e) { details.put("loteId", String.valueOf(e.getId())); }
+        else if (ex instanceof TipoMateriaPrimaNaoEncontradoException e) { details.put("materiaPrimaId", String.valueOf(e.getMateriaPrimaId())); }
+        else if (ex instanceof VendaNaoEncontradaException e) { details.put("vendaId", String.valueOf(e.getMessage())); }
+        else if (ex instanceof ArquivoNaoEncontradoException) { details.put("info", ex.getMessage()); }
+        else if (ex instanceof CorteRealizadoNaoEncontradoException e) { details.put("corteRealizadoId", String.valueOf(e.getId())); }
+        else if (ex instanceof MovimentacaoEstoqueProdutoNaoEncontradoException e) { details.put("movimentacaoId", String.valueOf(e.getId())); }
+        else if (ex instanceof OrdemDeProducaoNaoEncontradaException e) { details.put("ordemDeProducaoId", String.valueOf(e.getId())); }
+        else if (ex instanceof PrecoNaoEncontradoException e) { details.put("precoId", String.valueOf(e.getId())); }
+        else if (ex instanceof EstoqueNaoEncontradoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("canalVendaId", String.valueOf(e.getCanalVendaId())); }
 
-        return buildErrorResponse(ex, HttpStatus.NOT_FOUND, Map.of(key, value));
+        return buildErrorResponse(ex, HttpStatus.NOT_FOUND, details);
     }
 
     /**
-     * Trata exceções de violação de regras de negócio genéricas (HTTP 400 Bad Request).
+     * Trata exceções de violação de regras de negócio (HTTP 400 Bad Request).
      * Intercepta {@link RegraNegocioException}, {@link EstoqueRegraNegocioException},
-     * e {@link PrecoVarejoNaoDefinidoException}.
+     * {@link PrecoVarejoNaoDefinidoException}, {@link LoteInvalidoException},
+     * {@link AtributoLoteInvalidoException}, {@link CalculoCustoIncompativelException},
+     * {@link DimensoesManuaisInvalidasException}, {@link MargemInvalidaException},
+     * {@link NenhumLoteComEstoqueException}, {@link LotePrincipalNaoEspecificadoException},
+     * {@link ProdutoNaoCabeNoLoteException}, {@link QuantidadeUnidadesInvalidaException},
+     * e {@link TipoProducaoIncompativelException}.
      *
      * @param ex A exceção de regra de negócio lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
      */
-    @ExceptionHandler({RegraNegocioException.class, EstoqueRegraNegocioException.class, PrecoVarejoNaoDefinidoException.class})
+    @ExceptionHandler({
+            RegraNegocioException.class, EstoqueRegraNegocioException.class, PrecoVarejoNaoDefinidoException.class, LoteInvalidoException.class,
+            AtributoLoteInvalidoException.class, CalculoCustoIncompativelException.class, DimensoesManuaisInvalidasException.class,
+            MargemInvalidaException.class, NenhumLoteComEstoqueException.class, LotePrincipalNaoEspecificadoException.class,
+            ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class
+    })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, Map.of("info", ex.getMessage()));
     }
@@ -72,17 +94,19 @@ public class GlobalExceptionHandler {
     /**
      * Trata exceções de conflito, como criação de recurso duplicado ou recurso em uso (HTTP 409 Conflict).
      * Intercepta {@link TipoMateriaPrimaJaExisteException}, {@link ProdutoEmUsoException},
-     * e {@link TipoMateriaPrimaEmUsoException}.
+     * {@link TipoMateriaPrimaEmUsoException}, {@link ProdutoNomeDuplicadoException} e {@link ProdutoSkuDuplicadoException}.
      *
      * @param ex A exceção de conflito lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 409.
      */
-    @ExceptionHandler({TipoMateriaPrimaJaExisteException.class, ProdutoEmUsoException.class, TipoMateriaPrimaEmUsoException.class})
+    @ExceptionHandler({TipoMateriaPrimaJaExisteException.class, ProdutoEmUsoException.class, TipoMateriaPrimaEmUsoException.class, ProdutoNomeDuplicadoException.class, ProdutoSkuDuplicadoException.class})
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
         if (ex instanceof TipoMateriaPrimaJaExisteException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof ProdutoEmUsoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("entidadesEmUso", e.getEntidadeIds().toString()); }
         else if (ex instanceof TipoMateriaPrimaEmUsoException e) { details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId())); details.put("lotesEmUso", e.getLoteIds().toString()); }
+        else if (ex instanceof ProdutoNomeDuplicadoException e) { details.put("nome", e.getNome()); }
+        else if (ex instanceof ProdutoSkuDuplicadoException e) { details.put("sku", e.getSku()); }
 
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
     }
@@ -101,12 +125,16 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata exceções de estoque insuficiente para uma operação (HTTP 400 Bad Request).
-     * Intercepta {@link EstoqueInsuficienteParaMovimentacaoException} e {@link EstoqueInsuficienteCanalException}.
+     * Intercepta {@link EstoqueInsuficienteParaMovimentacaoException}, {@link EstoqueInsuficienteCanalException},
+     * {@link AlocacaoEstoqueExcedeTotalException} e {@link SaldoMateriaPrimaInsuficienteException}.
      *
      * @param ex A exceção de estoque insuficiente lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400 e detalhes do estoque.
      */
-    @ExceptionHandler({EstoqueInsuficienteParaMovimentacaoException.class, EstoqueInsuficienteCanalException.class})
+    @ExceptionHandler({
+            EstoqueInsuficienteParaMovimentacaoException.class, EstoqueInsuficienteCanalException.class,
+            AlocacaoEstoqueExcedeTotalException.class, SaldoMateriaPrimaInsuficienteException.class
+    })
     public ResponseEntity<ErrorResponseDTO> handleInsufficientStock(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
         if (ex instanceof EstoqueInsuficienteParaMovimentacaoException e) {
@@ -118,6 +146,13 @@ public class GlobalExceptionHandler {
             details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
             details.put("quantidadeRequisitada", String.valueOf(Math.abs(e.getQuantidadeRequisitada())));
             details.put("estoqueAtual", String.valueOf(e.getEstoqueAtual()));
+        } else if (ex instanceof AlocacaoEstoqueExcedeTotalException e) {
+            details.put("quantidadeParaAlocar", String.valueOf(e.getQuantidadeParaAlocar()));
+            details.put("novoTotalDistribuido", String.valueOf(e.getNovoTotalDistribuido()));
+            details.put("estoqueFisicoTotal", String.valueOf(e.getEstoqueFisicoTotal()));
+        } else if (ex instanceof SaldoMateriaPrimaInsuficienteException e) {
+            details.put("quantidadeRequisitada", String.valueOf(e.getQuantidadeRequisitada()));
+            details.put("saldoDisponivel", String.valueOf(e.getSaldoDisponivel()));
         }
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
@@ -178,16 +213,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Trata exceções internas relacionadas ao processo de mesclagem de JSON em operações PATCH.
-     * Retorna HTTP 500, pois este é um erro inesperado do lado do servidor.
+     * Trata exceções internas do servidor (HTTP 500 Internal Server Error).
+     * Intercepta {@link JsonMergeException} e {@link ExcecaoArmazenamentoArquivo}.
      *
-     * @param ex A exceção {@link JsonMergeException} lançada.
+     * @param ex A exceção interna do servidor lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 500.
      */
-    @ExceptionHandler(JsonMergeException.class)
-    public ResponseEntity<ErrorResponseDTO> handleJsonMergeException(JsonMergeException ex) {
-        log.error("Falha ao mesclar JSON para operação PATCH: ", ex);
-        String msg = "Ocorreu um erro interno ao processar a atualização. A estrutura dos dados enviados pode ser inválida.";
+    @ExceptionHandler({JsonMergeException.class, ExcecaoArmazenamentoArquivo.class})
+    public ResponseEntity<ErrorResponseDTO> handleInternalServerExceptions(RuntimeException ex) {
+        log.error("Erro interno do servidor: ", ex);
+        String msg = "Ocorreu um erro interno inesperado. Tente novamente mais tarde.";
         return buildErrorResponse(msg, HttpStatus.INTERNAL_SERVER_ERROR, Map.of("detalhe", ex.getMessage()));
     }
 
