@@ -5,7 +5,7 @@ import com.dcriar.api.dto.response.product.CanalVendaResponseDTO;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.service.CanalVendaService;
-import com.dcriar.exception.custom.CanalVendaNotFoundException;
+import com.dcriar.exception.custom.CanalVendaNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +16,8 @@ import java.util.stream.Collectors;
 /**
  * Implementação da lógica de negócio para CanalVenda.
  * <p>
- * Utiliza os métodos from() e updateFrom() da entidade para centralizar regras de negócio de criação e atualização.
+ * As regras de negócio, como a validação de nome único, são centralizadas
+ * nos métodos de fábrica ({@code from}) e de atualização ({@code updateFrom}) da entidade {@link CanalVenda}.
  */
 @Service
 @RequiredArgsConstructor
@@ -26,10 +27,15 @@ public class CanalVendaServiceImpl implements CanalVendaService {
 
     /**
      * Cria um novo canal de venda.
-     * Utiliza o método {@link CanalVenda#from} para centralizar regras de negócio de criação.
+     * <p>
+     * <b>Regras de negócio:</b>
+     * <ul>
+     *     <li>O nome do canal de venda não pode ser duplicado.</li>
+     * </ul>
+     * A lógica de validação e criação é delegada ao método {@link CanalVenda#from(CanalVendaRequestDTO)}.
      *
-     * @param requestDTO DTO de request com os dados do canal de venda
-     * @return DTO de resposta do canal criado
+     * @param requestDTO DTO de request com os dados do canal de venda.
+     * @return DTO de resposta do canal criado.
      */
     @Override
     @Transactional
@@ -41,17 +47,23 @@ public class CanalVendaServiceImpl implements CanalVendaService {
 
     /**
      * Atualiza um canal de venda existente.
-     * Utiliza o método {@link CanalVenda#updateFrom} para centralizar regras de negócio de atualização.
+     * <p>
+     * <b>Regras de negócio:</b>
+     * <ul>
+     *     <li>O novo nome do canal de venda não pode ser duplicado.</li>
+     * </ul>
+     * A lógica de validação e atualização é delegada ao método {@link CanalVenda#updateFrom(CanalVendaRequestDTO)}.
      *
-     * @param id          ID do canal de venda
-     * @param requestDTO  DTO de request com os dados para atualização
-     * @return DTO de resposta do canal atualizado
+     * @param id          ID do canal de venda a ser atualizado.
+     * @param requestDTO  DTO de request com os dados para atualização.
+     * @return DTO de resposta do canal atualizado.
+     * @throws CanalVendaNaoEncontradoException se o canal de venda não for encontrado.
      */
     @Override
     @Transactional
     public CanalVendaResponseDTO update(Long id, CanalVendaRequestDTO requestDTO) {
         CanalVenda canal = canalVendaRepository.findById(id)
-                .orElseThrow(() -> new CanalVendaNotFoundException(id));
+                .orElseThrow(() -> new CanalVendaNaoEncontradoException(id));
         canal.updateFrom(requestDTO);
         CanalVenda atualizado = canalVendaRepository.save(canal);
         return toResponseDTO(atualizado);
@@ -60,21 +72,22 @@ public class CanalVendaServiceImpl implements CanalVendaService {
     /**
      * Busca um canal de venda pelo ID.
      *
-     * @param id ID do canal de venda
-     * @return DTO de resposta do canal encontrado
+     * @param id ID do canal de venda.
+     * @return DTO de resposta do canal encontrado.
+     * @throws CanalVendaNaoEncontradoException se o canal de venda não for encontrado.
      */
     @Override
     @Transactional(readOnly = true)
     public CanalVendaResponseDTO findById(Long id) {
         CanalVenda canal = canalVendaRepository.findById(id)
-                .orElseThrow(() -> new CanalVendaNotFoundException(id));
+                .orElseThrow(() -> new CanalVendaNaoEncontradoException(id));
         return toResponseDTO(canal);
     }
 
     /**
      * Lista todos os canais de venda.
      *
-     * @return Lista de DTOs de resposta
+     * @return Lista de DTOs de resposta.
      */
     @Override
     @Transactional(readOnly = true)
@@ -89,8 +102,8 @@ public class CanalVendaServiceImpl implements CanalVendaService {
      * <p>
      * Conversão simples, sem lógica de negócio.
      *
-     * @param canal Entidade CanalVenda
-     * @return DTO de resposta
+     * @param canal Entidade CanalVenda.
+     * @return DTO de resposta.
      */
     private CanalVendaResponseDTO toResponseDTO(CanalVenda canal) {
         return CanalVendaResponseDTO.builder()

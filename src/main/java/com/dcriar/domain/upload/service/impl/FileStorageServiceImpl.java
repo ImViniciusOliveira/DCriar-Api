@@ -1,8 +1,8 @@
 package com.dcriar.domain.upload.service.impl;
 
 import com.dcriar.domain.upload.service.FileStorageService;
-import com.dcriar.exception.custom.FileNotFoundException;
-import com.dcriar.exception.custom.FileStorageException;
+import com.dcriar.exception.custom.ArquivoNaoEncontradoException;
+import com.dcriar.exception.custom.ExcecaoArmazenamentoArquivo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -36,7 +36,7 @@ public class FileStorageServiceImpl implements FileStorageService {
      * e cria o diretório se ele não existir.
      *
      * @param uploadDir O caminho para o diretório de upload.
-     * @throws FileStorageException Se não for possível criar o diretório de upload.
+     * @throws ExcecaoArmazenamentoArquivo Se não for possível criar o diretório de upload.
      */
     public FileStorageServiceImpl(@Value("${file.upload-dir}") String uploadDir) {
         this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
@@ -44,7 +44,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         try {
             Files.createDirectories(this.fileStorageLocation);
         } catch (Exception ex) {
-            throw new FileStorageException("Não foi possível criar o diretório onde os arquivos de upload serão armazenados.", ex);
+            throw new ExcecaoArmazenamentoArquivo("Não foi possível criar o diretório onde os arquivos de upload serão armazenados.", ex);
         }
     }
 
@@ -54,7 +54,7 @@ public class FileStorageServiceImpl implements FileStorageService {
      *
      * @param file O arquivo multipart a ser armazenado.
      * @return O novo nome do arquivo gerado.
-     * @throws FileStorageException Se o nome do arquivo contiver sequências de caminho inválidas ou se ocorrer um erro de IO.
+     * @throws ExcecaoArmazenamentoArquivo Se o nome do arquivo contiver sequências de caminho inválidas ou se ocorrer um erro de IO.
      */
     @Override
     public String storeFile(MultipartFile file) {
@@ -64,7 +64,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         try {
             // Validação de segurança para evitar ataques de "path traversal".
             if (originalFileName.contains("..")) {
-                throw new FileStorageException("Desculpe! O nome do arquivo contém uma sequência de caminho inválida: " + originalFileName);
+                throw new ExcecaoArmazenamentoArquivo("Desculpe! O nome do arquivo contém uma sequência de caminho inválida: " + originalFileName);
             }
 
             // Gera um nome de arquivo único para evitar sobrescrever arquivos existentes.
@@ -77,7 +77,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
             return newFileName;
         } catch (IOException ex) {
-            throw new FileStorageException("Não foi possível armazenar o arquivo " + originalFileName + ". Por favor, tente novamente!", ex);
+            throw new ExcecaoArmazenamentoArquivo("Não foi possível armazenar o arquivo " + originalFileName + ". Por favor, tente novamente!", ex);
         }
     }
 
@@ -86,7 +86,7 @@ public class FileStorageServiceImpl implements FileStorageService {
      *
      * @param fileName O nome do arquivo a ser carregado.
      * @return O arquivo como um objeto Resource.
-     * @throws FileNotFoundException Se o arquivo não for encontrado ou a URL do recurso for malformada.
+     * @throws ArquivoNaoEncontradoException Se o arquivo não for encontrado ou a URL do recurso for malformada.
      */
     @Override
     public Resource loadFileAsResource(String fileName) {
@@ -96,10 +96,10 @@ public class FileStorageServiceImpl implements FileStorageService {
             if (resource.exists()) {
                 return resource;
             } else {
-                throw new FileNotFoundException("Arquivo não encontrado: " + fileName);
+                throw new ArquivoNaoEncontradoException("Arquivo não encontrado: " + fileName);
             }
         } catch (MalformedURLException ex) {
-            throw new FileNotFoundException("Arquivo não encontrado: " + fileName, ex);
+            throw new ArquivoNaoEncontradoException("Arquivo não encontrado: " + fileName, ex);
         }
     }
 

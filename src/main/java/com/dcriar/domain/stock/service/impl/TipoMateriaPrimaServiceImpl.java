@@ -10,9 +10,9 @@ import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaSpecification;
 import com.dcriar.domain.stock.service.TipoMateriaPrimaService;
-import com.dcriar.exception.custom.TipoMateriaPrimaAlreadyExistsException;
+import com.dcriar.exception.custom.TipoMateriaPrimaJaExisteException;
 import com.dcriar.exception.custom.TipoMateriaPrimaEmUsoException;
-import com.dcriar.exception.custom.TipoMateriaPrimaNotFoundException;
+import com.dcriar.exception.custom.TipoMateriaPrimaNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -70,7 +70,7 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
      *
      * @param id O ID do tipo de matéria-prima a ser buscado.
      * @return O {@link TipoMateriaPrimaResponseDTO} correspondente ao ID.
-     * @throws TipoMateriaPrimaNotFoundException se o tipo de matéria-prima com o ID especificado não for encontrado.
+     * @throws TipoMateriaPrimaNaoEncontradoException se o tipo de matéria-prima com o ID especificado não for encontrado.
      */
     @Override
     @Transactional(readOnly = true)
@@ -88,7 +88,7 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
      *
      * @param requestDTO O DTO com os dados para a criação do tipo de matéria-prima.
      * @return O {@link TipoMateriaPrimaResponseDTO} do tipo recém-criado.
-     * @throws TipoMateriaPrimaAlreadyExistsException se já existir um tipo de matéria-prima com o nome fornecido.
+     * @throws TipoMateriaPrimaJaExisteException se já existir um tipo de matéria-prima com o nome fornecido.
      */
     @Override
     @Transactional
@@ -110,8 +110,8 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
      * @param id O ID do tipo de matéria-prima a ser atualizado.
      * @param requestDTO O DTO com os novos dados.
      * @return O {@link TipoMateriaPrimaResponseDTO} do tipo atualizado.
-     * @throws TipoMateriaPrimaNotFoundException se o tipo de matéria-prima com o ID especificado não for encontrado.
-     * @throws TipoMateriaPrimaAlreadyExistsException se o novo nome fornecido já estiver em uso por outro tipo.
+     * @throws TipoMateriaPrimaNaoEncontradoException se o tipo de matéria-prima com o ID especificado não for encontrado.
+     * @throws TipoMateriaPrimaJaExisteException se o novo nome fornecido já estiver em uso por outro tipo.
      */
     @Override
     @Transactional
@@ -131,7 +131,7 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
      * Antes de deletar, verifica se o tipo de matéria-prima não está em uso por nenhum lote.
      *
      * @param id O ID do tipo de matéria-prima a ser deletado.
-     * @throws TipoMateriaPrimaNotFoundException se o tipo de matéria-prima com o ID especificado não for encontrado.
+     * @throws TipoMateriaPrimaNaoEncontradoException se o tipo de matéria-prima com o ID especificado não for encontrado.
      * @throws TipoMateriaPrimaEmUsoException se o tipo de matéria-prima estiver em uso por um ou mais lotes.
      */
     @Override
@@ -154,11 +154,11 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
      *
      * @param id O ID do tipo de matéria-prima a ser buscado.
      * @return A entidade {@link TipoMateriaPrima} encontrada.
-     * @throws TipoMateriaPrimaNotFoundException se o tipo de matéria-prima com o ID especificado não for encontrado.
+     * @throws TipoMateriaPrimaNaoEncontradoException se o tipo de matéria-prima com o ID especificado não for encontrado.
      */
     private TipoMateriaPrima findTipoById(Long id) {
         return tipoMateriaPrimaRepository.findById(id)
-                .orElseThrow(() -> new TipoMateriaPrimaNotFoundException(id));
+                .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(id));
     }
 
     /**
@@ -166,11 +166,11 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
      * Método auxiliar para evitar duplicação de código.
      *
      * @param nome O nome a ser validado.
-     * @throws TipoMateriaPrimaAlreadyExistsException se já existir um tipo de matéria-prima com o nome fornecido.
+     * @throws TipoMateriaPrimaJaExisteException se já existir um tipo de matéria-prima com o nome fornecido.
      */
     private void validateNomeDisponivel(String nome) {
         if (tipoMateriaPrimaRepository.existsByNome(nome)) {
-            throw new TipoMateriaPrimaAlreadyExistsException(nome);
+            throw new TipoMateriaPrimaJaExisteException(nome);
         }
     }
 }

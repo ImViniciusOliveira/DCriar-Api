@@ -9,6 +9,7 @@ import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoConsumoDiretoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
 import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
+import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
@@ -28,15 +29,11 @@ import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
-import com.dcriar.exception.custom.LoteMateriaPrimaNotFoundException;
-import com.dcriar.exception.custom.ProdutoNotFoundException;
-import com.dcriar.exception.custom.RegraNegocioException;
+import com.dcriar.exception.custom.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
-
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -46,8 +43,18 @@ import java.util.stream.Collectors;
 
 /**
  * Implementação do serviço para gerir Ordens de Produção.
+ * <p>
  * Esta classe orquestra a criação de ordens por corte (com otimização de layout)
- * e por consumo direto, gerindo a movimentação de stock de matéria-prima e produtos acabados.
+ * e por consumo direto, gerenciando a movimentação de estoque de matéria-prima e produtos acabados.
+ * <p>
+ * <b>Responsabilidades Principais:</b>
+ * <ul>
+ *     <li>Criar ordens de produção, validando a compatibilidade do tipo de produção.</li>
+ *     <li>Orquestrar a baixa no estoque de matéria-prima.</li>
+ *     <li>Orquestrar a entrada no estoque de produtos acabados.</li>
+ *     <li>Gerar novos lotes de matéria-prima a partir de sobras (retalhos) em ordens de corte.</li>
+ *     <li>Distribuir opcionalmente o estoque produzido para canais de venda.</li>
+ * </ul>
  */
 @Service
 @Slf4j
@@ -64,30 +71,38 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private final EstoqueProdutoService estoqueProdutoService;
 
     /**
-     * {@inheritDoc}
+     * Cria uma Ordem de Produção baseada em corte de matéria-prima.
      * <p>
-     * A lógica otimiza o uso da matéria-prima, calcula o layout, gera os cortes de produtos
-     * e transforma as sobras (retalhos) em novos lotes de stock utilizáveis. Orquestra as seguintes etapas:
+     * <b>Processo de Orquestração:</b>
      * <ol>
      *     <li>Valida se o produto é compatível com produção por corte.</li>
-     *     <li>Calcula os parâmetros de corte (automático) ou usa os dados manuais.</li>
+     *     <li>Calcula os parâmetros de corte (se modo automático) ou usa os dados manuais.</li>
      *     <li>Valida se há saldo suficiente no lote de matéria-prima.</li>
      *     <li>Cria e salva a Ordem de Produção com os detalhes do processo.</li>
+     *     <li><b>Efeito Colateral:</b> Se o corte gerar sobras (retalhos), novos lotes de matéria-prima são criados automaticamente.</li>
      *     <li>Registra a saída no estoque do lote de matéria-prima.</li>
      *     <li>Registra a entrada no estoque do produto acabado.</li>
-     *     <li>Distribui o novo estoque de produto para um canal de venda, se especificado.</li>
+     *     <li><b>Distribuição Opcional:</b> Se um {@code canalVendaDestinoId} for fornecido, a quantidade produzida é automaticamente distribuída para o estoque daquele canal.</li>
      * </ol>
+     *
+     * @param requestDTO O DTO com os dados da ordem de corte.
+     * @return O DTO de resposta da ordem de produção criada.
+     * @throws TipoProducaoIncompativelException se o produto não for compatível com produção por corte.
+     * @throws LotePrincipalNaoEspecificadoException se o lote principal não for especificado.
+     * @throws DimensoesManuaisInvalidasException se o modo de cálculo for manual e as dimensões não forem fornecidas.
+     * @throws SaldoMateriaPrimaInsuficienteException se o saldo do lote de matéria-prima for insuficiente.
      */
     @Override
     @Transactional
     public OrdemDeProducaoResponseDTO criarOrdemDeCorte(OrdemDeCorteRequestDTO requestDTO) {
+        // 1. Validações iniciais e busca de entidades principais.
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (isGeometricUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
-            throw new RegraNegocioException("Este produto não pode ser produzido por corte. Utilize o endpoint de consumo direto.");
+            throw new TipoProducaoIncompativelException("Este produto não pode ser produzido por corte. Utilize o endpoint de consumo direto.");
         }
 
         if (requestDTO.getLotePrincipalId() == null) {
-            throw new RegraNegocioException("A produção por corte exige a especificação de um 'lotePrincipalId'.");
+            throw new LotePrincipalNaoEspecificadoException("A produção por corte exige a especificação de um 'lotePrincipalId'.");
         }
         LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLotePrincipalId());
 
@@ -97,9 +112,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal larguraFinalCm;
         ParametrosCorte parametros = null;
 
+        // 2. Determina os parâmetros de corte (manual ou automático).
         if (requestDTO.getModoCalculo() == ModoCalculo.MANUAL) {
             if (requestDTO.getLarguraFinalCm() == null || requestDTO.getComprimentoFinalCm() == null) {
-                throw new RegraNegocioException("Para o modo MANUAL, as dimensões finais são obrigatórias.");
+                throw new DimensoesManuaisInvalidasException("Para o modo MANUAL, as dimensões finais (largura e comprimento) são obrigatórias.");
             }
             larguraFinalCm = requestDTO.getLarguraFinalCm();
             comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
@@ -124,9 +140,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     : produto.getDimensoesUnitarias().getLarguraCm();
         }
 
+        // 3. Valida se o lote principal tem saldo suficiente.
         validarSaldoLoteCorte(lotePrincipal, consumoTotalMetros);
 
-        // Conversão do DTO específico para OrdemDeProducaoRequestDTO
+        // 4. Cria e persiste a Ordem de Produção e seus cortes.
         OrdemDeProducaoRequestDTO ordemRequestDTO = OrdemDeProducaoRequestDTO.builder()
             .produtoId(produto.getId())
             .lotesConsumidosIds(Set.of(lotePrincipal.getId()))
@@ -158,6 +175,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordem);
 
+        // 5. Orquestra as movimentações de estoque.
         registrarSaidaLote(lotePrincipal, consumoTotalMetros, "Consumido pela Ordem de Produção #" + savedOrdem.getId());
         registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId());
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
@@ -166,27 +184,32 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     /**
-     * {@inheritDoc}
+     * Cria uma Ordem de Produção baseada em consumo direto de matéria-prima.
      * <p>
-     * Orquestra as seguintes etapas:
+     * <b>Processo de Orquestração:</b>
      * <ol>
      *     <li>Valida se o produto é compatível com produção por consumo direto.</li>
      *     <li>Verifica se os lotes de matéria-prima especificados existem.</li>
-     *     <li>Calcula o consumo total necessário e valida se o saldo dos lotes é suficiente.</li>
+     *     <li>Calcula o consumo total necessário e valida se o saldo somado dos lotes é suficiente.</li>
      *     <li>Cria e salva a Ordem de Produção.</li>
-     *     <li>Registra a saída no estoque dos lotes de matéria-prima, consumindo-os na ordem em que foram fornecidos.</li>
+     *     <li>Registra a saída no estoque dos lotes de matéria-prima, consumindo-os sequencialmente até que a necessidade total seja atendida.</li>
      *     <li>Registra a entrada no estoque do produto acabado.</li>
-     *     <li>Distribui o novo estoque de produto para um canal de venda, se especificado.</li>
+     *     <li><b>Distribuição Opcional:</b> Se um {@code canalVendaDestinoId} for fornecido, a quantidade produzida é automaticamente distribuída para o estoque daquele canal.</li>
      * </ol>
      *
-     * @throws RegraNegocioException se o produto não for para consumo direto, se algum lote for inválido ou se o saldo de matéria-prima for insuficiente.
+     * @param requestDTO O DTO com os dados da ordem de consumo direto.
+     * @return O DTO de resposta da ordem de produção criada.
+     * @throws TipoProducaoIncompativelException se o produto não for para consumo direto.
+     * @throws RegraNegocioException se algum dos IDs de lote fornecidos for inválido.
+     * @throws SaldoMateriaPrimaInsuficienteException se o saldo combinado dos lotes de matéria-prima for insuficiente.
      */
     @Override
     @Transactional
     public OrdemDeProducaoResponseDTO criarOrdemDeConsumoDireto(OrdemDeConsumoDiretoRequestDTO requestDTO) {
+        // 1. Validações iniciais e busca de entidades.
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (isDirectConsumptionUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
-            throw new RegraNegocioException("Este produto não pode ser produzido por consumo direto. Utilize o endpoint de corte.");
+            throw new TipoProducaoIncompativelException("Este produto não pode ser produzido por consumo direto. Utilize o endpoint de corte.");
         }
 
         Set<LoteMateriaPrima> lotesConsumidos = new HashSet<>(loteMateriaPrimaRepository.findAllById(requestDTO.getLotesConsumidosIds()));
@@ -194,16 +217,17 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw new RegraNegocioException("Um ou mais IDs de lote fornecidos são inválidos.");
         }
 
+        // 2. Valida se o saldo total dos lotes é suficiente.
         BigDecimal consumoTotalNecessario = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidadeProduzida());
         BigDecimal saldoTotalDisponivel = lotesConsumidos.stream()
                 .map(movimentacaoEstoqueLoteRepository::findSaldoByLote)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         if (saldoTotalDisponivel.compareTo(consumoTotalNecessario) < 0) {
-            throw new RegraNegocioException("Saldo de matéria-prima insuficiente. Necessário: " + consumoTotalNecessario + ", Disponível: " + saldoTotalDisponivel);
+            throw new SaldoMateriaPrimaInsuficienteException(consumoTotalNecessario, saldoTotalDisponivel);
         }
 
-        // Conversão do DTO específico para OrdemDeProducaoRequestDTO
+        // 3. Cria e persiste a Ordem de Produção.
         OrdemDeProducaoRequestDTO ordemRequestDTO = OrdemDeProducaoRequestDTO.builder()
             .produtoId(produto.getId())
             .lotesConsumidosIds(new HashSet<>(requestDTO.getLotesConsumidosIds()))
@@ -215,6 +239,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeProducao ordem = OrdemDeProducao.from(ordemRequestDTO, produto, lotesConsumidos, null);
         OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordem);
 
+        // 4. Orquestra as movimentações de estoque.
+        // Consome dos lotes sequencialmente até atingir o necessário.
         BigDecimal consumoRestante = consumoTotalNecessario;
         for (LoteMateriaPrima lote : lotesConsumidos) {
             if (consumoRestante.compareTo(BigDecimal.ZERO) <= 0) break;
@@ -233,19 +259,21 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     /**
-     * {@inheritDoc}
+     * Exclui uma Ordem de Produção pelo seu ID.
      * <p>
-     * <b>Atenção:</b> Esta operação realiza uma exclusão física (hard delete) do registro da ordem.
-     * As movimentações de estoque (entrada de produto e saída de matéria-prima) associadas
-     * a esta ordem <em>não</em> são revertidas automaticamente.
+     * <b>Atenção:</b> Esta operação realiza uma exclusão física (hard delete) do registro da ordem
+     * e de seus cortes associados. As movimentações de estoque (entrada de produto e saída de matéria-prima)
+     * geradas por esta ordem <em>não</em> são revertidas automaticamente, o que pode levar a
+     * inconsistências nos saldos de estoque.
      *
-     * @throws RegraNegocioException se a ordem de produção com o ID especificado não for encontrada.
+     * @param id O ID da ordem de produção a ser excluída.
+     * @throws OrdemDeProducaoNaoEncontradaException se a ordem de produção com o ID especificado não for encontrada.
      */
     @Override
     @Transactional
     public void excluir(Long id) {
         if (!ordemDeProducaoRepository.existsById(id)) {
-            throw new RegraNegocioException("Ordem de Produção não encontrada com ID: " + id);
+            throw new OrdemDeProducaoNaoEncontradaException(id);
         }
         ordemDeProducaoRepository.deleteById(id);
     }
@@ -253,13 +281,13 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     /**
      * {@inheritDoc}
      *
-     * @throws RegraNegocioException se a ordem de produção com o ID especificado não for encontrada.
+     * @throws OrdemDeProducaoNaoEncontradaException se a ordem de produção com o ID especificado não for encontrada.
      */
     @Override
     public OrdemDeProducaoResponseDTO buscarPorId(Long id) {
         return ordemDeProducaoRepository.findById(id)
                 .map(ordemDeProducaoMapper::toDto)
-                .orElseThrow(() -> new RegraNegocioException("Ordem de Produção não encontrada com ID: " + id));
+                .orElseThrow(() -> new OrdemDeProducaoNaoEncontradaException(id));
     }
 
     /**
@@ -273,21 +301,29 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     /**
-     * {@inheritDoc}
+     * Simula uma ordem de produção por corte para estimar o consumo de matéria-prima.
+     * <p>
+     * <b>Regra de Negócio:</b> Para realizar a simulação, o serviço busca o <strong>primeiro</strong>
+     * lote de matéria-prima compatível que possua estoque disponível. A simulação será baseada
+     * nos atributos (ex: largura) deste lote específico.
      *
-     * @throws RegraNegocioException se o produto não for de um tipo geométrico ou se não houver lotes com estoque para simulação.
+     * @param requestDTO O DTO com os dados para a simulação.
+     * @return Um DTO com os resultados da simulação.
+     * @throws TipoProducaoIncompativelException se o produto não for de um tipo geométrico.
+     * @throws NenhumLoteComEstoqueException se não houver lotes com estoque para simulação.
      */
     @Override
     public SimulacaoCorteResponseDTO simularCorte(SimulacaoCorteRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (isGeometricUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
-            throw new RegraNegocioException("Este produto não utiliza uma matéria-prima geométrica para simulação de corte.");
+            throw new TipoProducaoIncompativelException("Este produto não utiliza uma matéria-prima geométrica para simulação de corte.");
         }
 
+        // Busca o primeiro lote compatível com estoque para usar como base para a simulação.
         LoteMateriaPrima loteParaSimulacao = loteMateriaPrimaRepository.findAllByTipoMateriaPrima(produto.getTipoMateriaPrima()).stream()
                 .filter(lote -> movimentacaoEstoqueLoteRepository.findSaldoByLote(lote).compareTo(BigDecimal.ZERO) > 0)
                 .findFirst()
-                .orElseThrow(() -> new RegraNegocioException("Não há lotes de matéria-prima com stock disponível para este produto."));
+                .orElseThrow(() -> new NenhumLoteComEstoqueException("Não há lotes de matéria-prima com estoque disponível para este produto."));
 
 
         ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(requestDTO.getQuantidade(), produto, loteParaSimulacao, null);
@@ -306,13 +342,13 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     /**
      * {@inheritDoc}
      *
-     * @throws RegraNegocioException se o produto for de um tipo geométrico, devendo-se usar o simulador de corte.
+     * @throws TipoProducaoIncompativelException se o produto for de um tipo geométrico, devendo-se usar o simulador de corte.
      */
     @Override
     public SimulacaoConsumoDiretoResponseDTO simularConsumoDireto(SimulacaoConsumoDiretoRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (isDirectConsumptionUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
-            throw new RegraNegocioException("Este produto utiliza uma matéria-prima geométrica. Utilize o simulador de corte.");
+            throw new TipoProducaoIncompativelException("Este produto utiliza uma matéria-prima geométrica. Utilize o simulador de corte.");
         }
 
         BigDecimal consumoTotalEstimado = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidade());
@@ -324,8 +360,12 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     /**
      * Gera a lista de cortes (produtos e retalhos) com base nos parâmetros de otimização.
-     * Simula o corte linha a linha, agrupando os retalhos laterais contíguos para formar
+     * <p>
+     * Este método simula o corte linha a linha, agrupando os retalhos laterais contíguos para formar
      * lotes de sobra maiores e mais aproveitáveis.
+     * <p>
+     * <b>Efeito Colateral Importante:</b> Para cada retalho gerado, este método invoca {@link #criarLoteDeRetalho(LoteMateriaPrima, BigDecimal, BigDecimal)},
+     * que cria uma nova entidade {@link LoteMateriaPrima} no banco de dados.
      *
      * @param parametros Os parâmetros de corte calculados pelo {@link CorteCalculatorService}.
      * @param lotePrincipal O lote de matéria-prima original de onde o material está sendo cortado.
@@ -338,37 +378,40 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal retalhoLarguraAcumulado = null;
         BigDecimal retalhoComprimentoAcumulado = BigDecimal.ZERO;
 
+        // Itera linha por linha do plano de corte.
         while (produtosRestantes > 0) {
             int produtosNestaLinha = Math.min(parametros.produtosPorLinha(), produtosRestantes);
             if (produtosNestaLinha <= 0) break;
 
+            // Adiciona o corte do produto principal.
             cortesRealizados.add(criarCorteProduto(parametros.larguraProduto(), parametros.comprimentoProduto(), produtosNestaLinha));
 
+            // Calcula a largura da sobra (retalho) nesta linha.
             BigDecimal larguraProdutosOcupada = parametros.larguraProduto().multiply(new BigDecimal(produtosNestaLinha));
             BigDecimal larguraRetalhoLinha = parametros.larguraUtilCm().subtract(larguraProdutosOcupada);
             BigDecimal comprimentoLinha = parametros.comprimentoProduto();
 
             if (larguraRetalhoLinha.compareTo(BigDecimal.ZERO) > 0) {
-                // Se a sobra atual tem a mesma largura da que estamos a acumular
+                // Lógica para agrupar retalhos contíguos de mesma largura.
                 if (retalhoLarguraAcumulado != null && larguraRetalhoLinha.compareTo(retalhoLarguraAcumulado) == 0) {
-                    // Apenas aumenta o comprimento do retalho acumulado
+                    // Se a sobra atual tem a mesma largura da anterior, apenas aumenta o comprimento acumulado.
                     retalhoComprimentoAcumulado = retalhoComprimentoAcumulado.add(comprimentoLinha);
                 } else {
-                    // Se há um retalho acumulado de uma largura diferente, guarda-o primeiro
+                    // Se a largura mudou, salva o retalho acumulado anteriormente (se existir).
                     if (retalhoLarguraAcumulado != null && retalhoComprimentoAcumulado.compareTo(BigDecimal.ZERO) > 0) {
                         cortesRealizados.add(criarCorteRetalho(retalhoLarguraAcumulado, retalhoComprimentoAcumulado));
                         criarLoteDeRetalho(lotePrincipal, retalhoLarguraAcumulado, retalhoComprimentoAcumulado.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
                     }
-                    // Inicia uma nova acumulação com a sobra da linha atual
+                    // Inicia uma nova acumulação com o retalho da linha atual.
                     retalhoLarguraAcumulado = larguraRetalhoLinha;
                     retalhoComprimentoAcumulado = comprimentoLinha;
                 }
-            } else { // Se esta linha não gerou retalho lateral
-                // Se havia um retalho a ser acumulado, a sequência foi quebrada. Guarda-o.
+            } else { // Se esta linha não gerou retalho lateral.
+                // Se havia um retalho sendo acumulado, a sequência foi quebrada. Salva-o.
                 if (retalhoLarguraAcumulado != null && retalhoComprimentoAcumulado.compareTo(BigDecimal.ZERO) > 0) {
                     cortesRealizados.add(criarCorteRetalho(retalhoLarguraAcumulado, retalhoComprimentoAcumulado));
                     criarLoteDeRetalho(lotePrincipal, retalhoLarguraAcumulado, retalhoComprimentoAcumulado.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
-                    // Reseta os acumuladores
+                    // Reseta os acumuladores.
                     retalhoLarguraAcumulado = null;
                     retalhoComprimentoAcumulado = BigDecimal.ZERO;
                 }
@@ -376,7 +419,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             produtosRestantes -= produtosNestaLinha;
         }
 
-        // Garante que o último retalho acumulado (se houver) é guardado no final do processo
+        // Garante que o último retalho acumulado (se houver) seja salvo no final do processo.
         if (retalhoLarguraAcumulado != null && retalhoComprimentoAcumulado.compareTo(BigDecimal.ZERO) > 0) {
             cortesRealizados.add(criarCorteRetalho(retalhoLarguraAcumulado, retalhoComprimentoAcumulado));
             criarLoteDeRetalho(lotePrincipal, retalhoLarguraAcumulado, retalhoComprimentoAcumulado.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
@@ -436,6 +479,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         loteMateriaPrimaRepository.save(loteRetalho);
     }
 
+    /**
+     * Orquestra a baixa de estoque de um lote de matéria-prima.
+     */
     private void registrarSaidaLote(LoteMateriaPrima lote, BigDecimal quantidade, String motivo) {
         MovimentacaoRequestDTO saidaDTO = com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO.builder()
                 .tipo(com.dcriar.domain.stock.entity.enums.TipoMovimentacao.SAIDA_PRODUCAO)
@@ -447,11 +493,11 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     /**
-     * Distribui a quantidade produzida de um produto para um canal de venda específico.
-     * Invoca o {@link EstoqueProdutoService} para realizar o ajuste de estoque no canal.
+     * Orquestra a distribuição da quantidade produzida para o estoque de um canal de venda.
+     * Se o ID do canal for nulo, nenhuma ação é tomada.
      *
      * @param produtoId O ID do produto produzido.
-     * @param canalVendaId O ID do canal de venda de destino. Se nulo, nenhuma ação é tomada.
+     * @param canalVendaId O ID do canal de venda de destino (pode ser nulo).
      * @param quantidade A quantidade a ser distribuída.
      */
     public void distribuirEstoqueParaCanal(Long produtoId, Long canalVendaId, Integer quantidade) {
@@ -466,7 +512,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     /**
-     * Registra uma movimentação de entrada no estoque físico (mestre) de um produto.
+     * Orquestra a entrada de um produto acabado no estoque mestre.
      *
      * @param produto O produto que teve seu estoque aumentado.
      * @param quantidade A quantidade produzida.
@@ -488,14 +534,12 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
      *
      * @param lote O lote a ser verificado.
      * @param consumoEmMetros A quantidade necessária em metros.
-     * @throws RegraNegocioException se o saldo for insuficiente.
+     * @throws SaldoMateriaPrimaInsuficienteException se o saldo for insuficiente.
      */
     private void validarSaldoLoteCorte(LoteMateriaPrima lote, BigDecimal consumoEmMetros) {
         BigDecimal saldoAtual = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
         if (consumoEmMetros.compareTo(saldoAtual) > 0) {
-            throw new RegraNegocioException(
-                    String.format("Saldo insuficiente para o corte. Necessário: %.2f m, Disponível: %.2f m", consumoEmMetros, saldoAtual)
-            );
+            throw new SaldoMateriaPrimaInsuficienteException(consumoEmMetros, saldoAtual);
         }
     }
 
@@ -504,11 +548,11 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
      *
      * @param id O ID do produto.
      * @return A entidade {@link Produto} encontrada.
-     * @throws ProdutoNotFoundException se o produto não for encontrado.
+     * @throws ProdutoNaoEncontradoException se o produto não for encontrado.
      */
     private Produto findProdutoById(Long id) {
         return produtoRepository.findById(id)
-                .orElseThrow(() -> new ProdutoNotFoundException(id));
+                .orElseThrow(() -> new ProdutoNaoEncontradoException(id));
     }
 
     /**
@@ -516,11 +560,11 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
      *
      * @param id O ID do lote.
      * @return A entidade {@link LoteMateriaPrima} encontrada.
-     * @throws LoteMateriaPrimaNotFoundException se o lote não for encontrado.
+     * @throws LoteMateriaPrimaNaoEncontradoException se o lote não for encontrado.
      */
     private LoteMateriaPrima findLoteById(Long id) {
         return loteMateriaPrimaRepository.findById(id)
-                .orElseThrow(() -> new LoteMateriaPrimaNotFoundException(id));
+                .orElseThrow(() -> new LoteMateriaPrimaNaoEncontradoException(id));
     }
 
     /**
@@ -544,4 +588,3 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 unidade != UnidadeDeMedida.UNIDADE;
     }
 }
-

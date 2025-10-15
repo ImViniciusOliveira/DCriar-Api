@@ -35,23 +35,23 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata exceções para entidades não encontradas (HTTP 404 Not Found).
-     * Intercepta {@link ProdutoNotFoundException}, {@link CanalVendaNotFoundException},
-     * {@link LoteMateriaPrimaNotFoundException}, {@link TipoMateriaPrimaNotFoundException},
-     * e {@link SaleNotFoundException}.
+     * Intercepta {@link ProdutoNaoEncontradoException}, {@link CanalVendaNaoEncontradoException},
+     * {@link LoteMateriaPrimaNaoEncontradoException}, {@link TipoMateriaPrimaNaoEncontradoException},
+     * e {@link VendaNaoEncontradaException}.
      *
      * @param ex A exceção de "não encontrado" lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 404.
      */
-    @ExceptionHandler({ProdutoNotFoundException.class, CanalVendaNotFoundException.class, LoteMateriaPrimaNotFoundException.class, TipoMateriaPrimaNotFoundException.class, SaleNotFoundException.class})
+    @ExceptionHandler({ProdutoNaoEncontradoException.class, CanalVendaNaoEncontradoException.class, LoteMateriaPrimaNaoEncontradoException.class, TipoMateriaPrimaNaoEncontradoException.class, VendaNaoEncontradaException.class})
     public ResponseEntity<ErrorResponseDTO> handleNotFoundExceptions(RuntimeException ex) {
         String key = "id";
         String value = "N/A";
 
-        if (ex instanceof ProdutoNotFoundException e) { key = "produtoId"; value = String.valueOf(e.getId()); }
-        else if (ex instanceof CanalVendaNotFoundException e) { key = "canalVendaId"; value = String.valueOf(e.getId()); }
-        else if (ex instanceof LoteMateriaPrimaNotFoundException e) { key = "loteId"; value = String.valueOf(e.getId()); }
-        else if (ex instanceof TipoMateriaPrimaNotFoundException e) { key = "materiaPrimaId"; value = String.valueOf(e.getMateriaPrimaId()); }
-        else if (ex instanceof SaleNotFoundException e) { key = "saleId"; value = String.valueOf(e.getSaleId()); }
+        if (ex instanceof ProdutoNaoEncontradoException e) { key = "produtoId"; value = String.valueOf(e.getId()); }
+        else if (ex instanceof CanalVendaNaoEncontradoException e) { key = "canalVendaId"; value = String.valueOf(e.getId()); }
+        else if (ex instanceof LoteMateriaPrimaNaoEncontradoException e) { key = "loteId"; value = String.valueOf(e.getId()); }
+        else if (ex instanceof TipoMateriaPrimaNaoEncontradoException e) { key = "materiaPrimaId"; value = String.valueOf(e.getMateriaPrimaId()); }
+        else if (ex instanceof VendaNaoEncontradaException e) { key = "saleId"; value = String.valueOf(e.getSaleId()); }
 
         return buildErrorResponse(ex, HttpStatus.NOT_FOUND, Map.of(key, value));
     }
@@ -71,16 +71,16 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata exceções de conflito, como criação de recurso duplicado ou recurso em uso (HTTP 409 Conflict).
-     * Intercepta {@link TipoMateriaPrimaAlreadyExistsException}, {@link ProdutoEmUsoException},
+     * Intercepta {@link TipoMateriaPrimaJaExisteException}, {@link ProdutoEmUsoException},
      * e {@link TipoMateriaPrimaEmUsoException}.
      *
      * @param ex A exceção de conflito lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 409.
      */
-    @ExceptionHandler({TipoMateriaPrimaAlreadyExistsException.class, ProdutoEmUsoException.class, TipoMateriaPrimaEmUsoException.class})
+    @ExceptionHandler({TipoMateriaPrimaJaExisteException.class, ProdutoEmUsoException.class, TipoMateriaPrimaEmUsoException.class})
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
-        if (ex instanceof TipoMateriaPrimaAlreadyExistsException e) { details.put("nome", e.getNome()); }
+        if (ex instanceof TipoMateriaPrimaJaExisteException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof ProdutoEmUsoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("entidadesEmUso", e.getEntidadeIds().toString()); }
         else if (ex instanceof TipoMateriaPrimaEmUsoException e) { details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId())); details.put("lotesEmUso", e.getLoteIds().toString()); }
 

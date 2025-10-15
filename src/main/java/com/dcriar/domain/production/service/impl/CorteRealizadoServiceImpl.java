@@ -8,6 +8,8 @@ import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.production.repository.CorteRealizadoRepository;
 import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
 import com.dcriar.domain.production.service.CorteRealizadoService;
+import com.dcriar.exception.custom.CorteRealizadoNaoEncontradoException;
+import com.dcriar.exception.custom.OrdemDeProducaoNaoEncontradaException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,11 +18,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Implementação das operações de negócio para CorteRealizado.
+ * Implementação das operações de negócio para {@link CorteRealizado}.
  * <p>
- * Centraliza regras de negócio de criação e atualização utilizando os métodos from e updateFrom da entidade CorteRealizado.
- * Realiza conversão para DTOs de resposta por meio do mapper, garantindo padronização e encapsulamento dos dados.
- * Todos os métodos são transacionais para garantir integridade das operações.
+ * Este serviço gerencia o ciclo de vida dos registros de cortes, que são sempre
+ * vinculados a uma {@link OrdemDeProducao} pai.
+ * <p>
+ * A lógica de criação e atualização é delegada aos métodos {@code from} e {@code updateFrom}
+ * da entidade para centralizar as regras de construção do objeto.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,19 +35,22 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
     private final CorteRealizadoMapper corteRealizadoMapper;
 
     /**
-     * Cria um novo registro de CorteRealizado.
+     * Cria e associa um novo registro de CorteRealizado a uma Ordem de Produção.
      * <p>
-     * Busca a ordem de produção associada, utiliza o método from para centralizar regras de negócio e salva o registro.
+     * A lógica de construção da entidade é delegada ao método {@link CorteRealizado#from(CorteRealizadoRequestDTO, OrdemDeProducao)}.
      *
-     * @param dto DTO com os dados do corte realizado
-     * @return DTO de resposta do corte realizado cadastrado
-     * @throws IllegalArgumentException se a ordem de produção não for encontrada
+     * @param dto DTO com os dados do corte realizado.
+     * @return DTO de resposta do corte realizado cadastrado.
+     * @throws OrdemDeProducaoNaoEncontradaException se a ordem de produção especificada no DTO não for encontrada.
      */
     @Override
     @Transactional
     public CorteRealizadoResponseDTO create(CorteRealizadoRequestDTO dto) {
+        // 1. Valida e busca a Ordem de Produção pai.
         OrdemDeProducao ordem = ordemDeProducaoRepository.findById(dto.getOrdemDeProducaoId())
-                .orElseThrow(() -> new IllegalArgumentException("Ordem de produção não encontrada: " + dto.getOrdemDeProducaoId()));
+                .orElseThrow(() -> new OrdemDeProducaoNaoEncontradaException(dto.getOrdemDeProducaoId()));
+        
+        // 2. Cria a entidade CorteRealizado e a salva.
         CorteRealizado corte = CorteRealizado.from(dto, ordem);
         CorteRealizado salvo = corteRealizadoRepository.save(corte);
         return corteRealizadoMapper.toResponseDTO(salvo);
@@ -52,20 +59,25 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
     /**
      * Atualiza um registro existente de CorteRealizado.
      * <p>
-     * Busca o corte e a ordem de produção associada, utiliza o método updateFrom para centralizar regras de negócio e salva o registro.
+     * <b>Regra de Negócio:</b> É possível reassociar um corte a uma Ordem de Produção diferente,
+     * embora isso possa levar a inconsistências se não for feito com cuidado.
+     * <p>
+     * A lógica de atualização é delegada ao método {@link CorteRealizado#updateFrom(CorteRealizadoRequestDTO, OrdemDeProducao)}.
      *
-     * @param id  ID do corte realizado
-     * @param dto DTO com os dados para atualização
-     * @return DTO de resposta do corte realizado atualizado
-     * @throws IllegalArgumentException se o corte ou a ordem de produção não forem encontrados
+     * @param id  ID do corte realizado a ser atualizado.
+     * @param dto DTO com os dados para atualização.
+     * @return DTO de resposta do corte realizado atualizado.
+     * @throws CorteRealizadoNaoEncontradoException se o corte não for encontrado.
+     * @throws OrdemDeProducaoNaoEncontradaException se a nova ordem de produção não for encontrada.
      */
     @Override
     @Transactional
     public CorteRealizadoResponseDTO update(Long id, CorteRealizadoRequestDTO dto) {
         CorteRealizado corte = corteRealizadoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Corte não encontrado: " + id));
+                .orElseThrow(() -> new CorteRealizadoNaoEncontradoException(id));
         OrdemDeProducao ordem = ordemDeProducaoRepository.findById(dto.getOrdemDeProducaoId())
-                .orElseThrow(() -> new IllegalArgumentException("Ordem de produção não encontrada: " + dto.getOrdemDeProducaoId()));
+                .orElseThrow(() -> new OrdemDeProducaoNaoEncontradaException(dto.getOrdemDeProducaoId()));
+        
         corte.updateFrom(dto, ordem);
         CorteRealizado atualizado = corteRealizadoRepository.save(corte);
         return corteRealizadoMapper.toResponseDTO(atualizado);
@@ -74,30 +86,30 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
     /**
      * Consulta um corte realizado pelo ID.
      *
-     * @param id ID do corte realizado
-     * @return DTO de resposta do corte realizado encontrado
-     * @throws IllegalArgumentException se o corte não for encontrado
+     * @param id ID do corte realizado.
+     * @return DTO de resposta do corte realizado encontrado.
+     * @throws CorteRealizadoNaoEncontradoException se o corte não for encontrado.
      */
     @Override
     @Transactional
     public CorteRealizadoResponseDTO findById(Long id) {
         CorteRealizado corte = corteRealizadoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Corte não encontrado: " + id));
+                .orElseThrow(() -> new CorteRealizadoNaoEncontradoException(id));
         return corteRealizadoMapper.toResponseDTO(corte);
     }
 
     /**
-     * Lista todos os cortes realizados de uma ordem de produção.
+     * Lista todos os cortes realizados de uma ordem de produção específica.
      *
-     * @param ordemDeProducaoId ID da ordem de produção
-     * @return Lista de DTOs de resposta dos cortes realizados
-     * @throws IllegalArgumentException se a ordem de produção não for encontrada
+     * @param ordemDeProducaoId ID da ordem de produção.
+     * @return Lista de DTOs de resposta dos cortes realizados.
+     * @throws OrdemDeProducaoNaoEncontradaException se a ordem de produção não for encontrada.
      */
     @Override
     @Transactional
     public List<CorteRealizadoResponseDTO> findByOrdemDeProducao(Long ordemDeProducaoId) {
         OrdemDeProducao ordem = ordemDeProducaoRepository.findById(ordemDeProducaoId)
-                .orElseThrow(() -> new IllegalArgumentException("Ordem de produção não encontrada: " + ordemDeProducaoId));
+                .orElseThrow(() -> new OrdemDeProducaoNaoEncontradaException(ordemDeProducaoId));
         return corteRealizadoRepository.findByOrdemDeProducao(ordem)
                 .stream()
                 .map(corteRealizadoMapper::toResponseDTO)
@@ -107,7 +119,7 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
     /**
      * Lista todos os cortes realizados cadastrados no sistema.
      *
-     * @return Lista de DTOs de resposta de todos os cortes realizados
+     * @return Lista de DTOs de resposta de todos os cortes realizados.
      */
     @Override
     @Transactional
@@ -119,9 +131,14 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
     }
 
     /**
-     * Exclui um corte realizado pelo ID.
+     * Exclui um corte realizado pelo seu ID.
+     * <p>
+     * <b>Atenção:</b> Esta é uma operação de exclusão física (hard delete) que não realiza
+     * validações ou atualizações em cascata. A exclusão de um corte <strong>não</strong>
+     * recalcula os totais ou o estado da {@link OrdemDeProducao} pai, o que pode
+     * levar a inconsistências nos dados da ordem de produção.
      *
-     * @param id ID do corte realizado a ser excluído
+     * @param id ID do corte realizado a ser excluído.
      */
     @Override
     @Transactional

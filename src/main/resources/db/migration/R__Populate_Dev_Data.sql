@@ -3,7 +3,7 @@
 
 -- 1. LIMPEZA COMPLETA DAS TABELAS (EM ORDEM DE DEPENDÊNCIA REVERSA)
 TRUNCATE TABLE
-    sale_items, sales, estoques, precos, cortes_realizados, ordem_producao_lotes_consumidos, ordens_de_producao,
+    itens_venda, vendas, estoques, precos, cortes_realizados, ordem_producao_lotes_consumidos, ordens_de_producao,
     movimentacoes_estoque_produto, movimentacoes_estoque_lote, lotes_materia_prima,
     produtos, tipos_materia_prima, canais_venda
     CASCADE;
@@ -17,8 +17,8 @@ ALTER SEQUENCE movimentacoes_estoque_produto_id_seq RESTART WITH 1;
 ALTER SEQUENCE precos_id_seq RESTART WITH 1;
 ALTER SEQUENCE canais_venda_id_seq RESTART WITH 1;
 ALTER SEQUENCE estoques_id_seq RESTART WITH 1;
-ALTER SEQUENCE sales_id_seq RESTART WITH 1;
-ALTER SEQUENCE sale_items_id_seq RESTART WITH 1;
+ALTER SEQUENCE vendas_id_seq RESTART WITH 1;
+ALTER SEQUENCE itens_venda_id_seq RESTART WITH 1;
 ALTER SEQUENCE ordens_de_producao_id_seq RESTART WITH 1;
 ALTER SEQUENCE cortes_realizados_id_seq RESTART WITH 1;
 
@@ -95,11 +95,11 @@ INSERT INTO cortes_realizados (ordem_de_producao_id, largura_cm, comprimento_cm,
     (2, 9.0, 5.0, 50, 'PRODUTO');
 
 -- ETAPA L: VENDAS DE EXEMPLO
-INSERT INTO sales (sale_date, canal_venda_id, total_amount) VALUES (NOW() - INTERVAL '1 day', 3, 99.90);
-INSERT INTO sale_items (sale_id, produto_id, quantity, unit_price, total_price) VALUES (1, 1, 1, 99.90, 99.90);
+INSERT INTO vendas (data_venda, canal_venda_id, valor_total) VALUES (NOW() - INTERVAL '1 day', 3, 99.90);
+INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_unitario, preco_total) VALUES (1, 1, 1, 99.90, 99.90);
 
-INSERT INTO sales (sale_date, canal_venda_id, total_amount) VALUES (NOW() - INTERVAL '12 hour', 5, 170.00);
-INSERT INTO sale_items (sale_id, produto_id, quantity, unit_price, total_price) VALUES (2, 2, 2, 85.00, 170.00);
+INSERT INTO vendas (data_venda, canal_venda_id, valor_total) VALUES (NOW() - INTERVAL '12 hour', 5, 170.00);
+INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_unitario, preco_total) VALUES (2, 2, 2, 85.00, 170.00);
 
-INSERT INTO sales (sale_date, canal_venda_id, total_amount) VALUES (NOW(), 2, 75.00);
-INSERT INTO sale_items (sale_id, produto_id, quantity, unit_price, total_price) VALUES (3, 3, 1, 45.00, 45.00), (3, 7, 1, 30.00, 30.00);
+INSERT INTO vendas (data_venda, canal_venda_id, valor_total) VALUES (NOW(), 2, 75.00);
+INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_unitario, preco_total) VALUES (3, 3, 1, 45.00, 45.00), (3, 7, 1, 30.00, 30.00);
