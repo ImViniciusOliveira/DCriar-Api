@@ -147,7 +147,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeProducaoRequestDTO ordemRequestDTO = OrdemDeProducaoRequestDTO.builder()
             .produtoId(produto.getId())
             .lotesConsumidosIds(Set.of(lotePrincipal.getId()))
-            .canalVendaDestinoId(requestDTO.getCanalVendaDestinoId())
+            .canalVendaDestinoId(requestDTO.getCanalVendaDestinoId() != null ? requestDTO.getCanalVendaDestinoId() : null)
             .quantidadeProduzida(requestDTO.getQuantidadeProduzida())
             .modoCalculo(requestDTO.getModoCalculo().name())
             .margens(requestDTO.getMargens())
@@ -200,7 +200,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
      * @param requestDTO O DTO com os dados da ordem de consumo direto.
      * @return O DTO de resposta da ordem de produção criada.
      * @throws TipoProducaoIncompativelException se o produto não for para consumo direto.
-     * @throws RegraNegocioException se algum dos IDs de lote fornecidos for inválido.
+     * @throws LoteMateriaPrimaNaoEncontradoException se algum dos IDs de lote fornecidos for inválido.
      * @throws SaldoMateriaPrimaInsuficienteException se o saldo combinado dos lotes de matéria-prima for insuficiente.
      */
     @Override
@@ -214,7 +214,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         Set<LoteMateriaPrima> lotesConsumidos = new HashSet<>(loteMateriaPrimaRepository.findAllById(requestDTO.getLotesConsumidosIds()));
         if (lotesConsumidos.size() != requestDTO.getLotesConsumidosIds().size()) {
-            throw new RegraNegocioException("Um ou mais IDs de lote fornecidos são inválidos.");
+            Set<Long> foundIds = lotesConsumidos.stream().map(LoteMateriaPrima::getId).collect(Collectors.toSet());
+            Set<Long> missingIds = new HashSet<>(requestDTO.getLotesConsumidosIds());
+            missingIds.removeAll(foundIds);
+            throw new LotesMateriaPrimaNaoEncontradosException(missingIds);
         }
 
         // 2. Valida se o saldo total dos lotes é suficiente.
@@ -231,7 +234,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeProducaoRequestDTO ordemRequestDTO = OrdemDeProducaoRequestDTO.builder()
             .produtoId(produto.getId())
             .lotesConsumidosIds(new HashSet<>(requestDTO.getLotesConsumidosIds()))
-            .canalVendaDestinoId(requestDTO.getCanalVendaDestinoId())
+            .canalVendaDestinoId(requestDTO.getCanalVendaDestinoId() != null ? requestDTO.getCanalVendaDestinoId() : null)
             .quantidadeProduzida(requestDTO.getQuantidadeProduzida())
             .motivo(requestDTO.getMotivo())
             .build();
@@ -388,7 +391,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
             // Calcula a largura da sobra (retalho) nesta linha.
             BigDecimal larguraProdutosOcupada = parametros.larguraProduto().multiply(new BigDecimal(produtosNestaLinha));
-            BigDecimal larguraRetalhoLinha = parametros.larguraUtilCm().subtract(larguraProdutosOcupada);
+            BigDecimal larguraRetalhoLinha = parametros.larguraTotalLoteCm().subtract(larguraProdutosOcupada);
             BigDecimal comprimentoLinha = parametros.comprimentoProduto();
 
             if (larguraRetalhoLinha.compareTo(BigDecimal.ZERO) > 0) {
