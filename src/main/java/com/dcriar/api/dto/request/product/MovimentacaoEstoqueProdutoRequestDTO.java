@@ -1,8 +1,7 @@
 package com.dcriar.api.dto.request.product;
 
+import com.dcriar.api.validation.annotation.ValidMovimentacaoEstoqueProdutoRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import lombok.*;
 
 /**
@@ -15,32 +14,30 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ValidMovimentacaoEstoqueProdutoRequest
 public class MovimentacaoEstoqueProdutoRequestDTO {
 
     /**
      * ID do produto associado à movimentação.
      */
-    @NotNull
-    @Schema(description = "ID do produto.", example = "1")
+    @Schema(description = "ID do produto associado à movimentação.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
      * Tipo da movimentação (ex: ENTRADA_PRODUCAO, SAIDA_VENDA).
      */
-    @NotNull
-    @Schema(description = "Tipo da movimentação.", example = "ENTRADA_PRODUCAO")
+    @Schema(description = "Tipo da movimentação (ex: ENTRADA_PRODUCAO, SAIDA_VENDA).", example = "ENTRADA_PRODUCAO", requiredMode = Schema.RequiredMode.REQUIRED)
     private String tipo;
 
     /**
      * Quantidade movimentada. Positiva para entradas, negativa para saídas.
      */
-    @NotNull
-    @Schema(description = "Quantidade movimentada.", example = "10")
+    @Schema(description = "Quantidade movimentada. Positiva para entradas, negativa para saídas.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 
     /**
      * Motivo ou observação da movimentação.
      */
-    @Schema(description = "Motivo ou observação.", example = "Ajuste manual")
+    @Schema(description = "Motivo ou observação da movimentação.", example = "Ajuste manual")
     private String motivo;
 }

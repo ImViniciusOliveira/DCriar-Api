@@ -1,8 +1,7 @@
 package com.dcriar.api.dto.request.production;
 
+import com.dcriar.api.validation.annotation.ValidSimulacaoConsumoDiretoRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,20 +20,18 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ValidSimulacaoConsumoDiretoRequest
 public class SimulacaoConsumoDiretoRequestDTO {
 
     /**
      * O ID do produto para o qual a simulação será realizada.
      */
-    @NotNull
     @Schema(description = "ID do produto a ser simulado.", example = "5", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
      * A quantidade de unidades do produto que se deseja produzir.
      */
-    @NotNull
-    @Positive
     @Schema(description = "Quantidade de unidades a serem produzidas na simulação.", example = "200", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 }

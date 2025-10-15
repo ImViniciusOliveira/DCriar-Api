@@ -1,8 +1,7 @@
 package com.dcriar.api.dto.request.product;
 
+import com.dcriar.api.validation.annotation.ValidEstoqueRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.*;
 
 /**
@@ -15,27 +14,24 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ValidEstoqueRequest
 public class EstoqueRequestDTO {
 
     /**
      * ID do produto associado ao estoque.
      */
-    @NotNull
-    @Schema(description = "ID do produto.", example = "1")
+    @Schema(description = "ID do produto associado ao estoque.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
      * ID do canal de venda onde o estoque está alocado.
      */
-    @NotNull
-    @Schema(description = "ID do canal de venda.", example = "2")
+    @Schema(description = "ID do canal de venda onde o estoque está alocado.", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long canalVendaId;
 
     /**
      * Quantidade de unidades disponíveis.
      */
-    @NotNull
-    @Positive
-    @Schema(description = "Quantidade de unidades.", example = "100")
+    @Schema(description = "Quantidade de unidades disponíveis.", example = "100", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 }

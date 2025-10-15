@@ -1,6 +1,7 @@
 package com.dcriar.api.dto.request.product;
 
-import jakarta.validation.constraints.*;
+import com.dcriar.api.validation.annotation.ValidPrecoRequest;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import java.math.BigDecimal;
 
@@ -15,40 +16,40 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ValidPrecoRequest
 public class PrecoRequestDTO {
     /**
      * ID do produto ao qual o preço está associado.
      * <p>Obrigatório para vincular o preço ao produto correto.</p>
      */
-    @NotNull
+    @Schema(description = "ID do produto ao qual o preço está associado.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
      * Tipo de preço (ex: VAREJO, ATACADO).
      * <p>Deve corresponder ao enum TipoPreco.</p>
      */
-    @NotNull
+    @Schema(description = "Tipo de preço (ex: VAREJO, ATACADO).", example = "VAREJO", requiredMode = Schema.RequiredMode.REQUIRED)
     private String tipoPreco;
 
     /**
      * Valor base do preço do produto.
      * <p>Deve ser maior ou igual a zero.</p>
      */
-    @NotNull
-    @DecimalMin("0.0")
+    @Schema(description = "Valor base do preço do produto.", example = "25.50", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal valor;
 
     /**
      * Valor promocional do produto, se houver promoção ativa.
      * <p>Deve ser maior ou igual a zero.</p>
      */
-    @DecimalMin("0.0")
+    @Schema(description = "Valor promocional do produto, se houver promoção ativa.", example = "19.90")
     private BigDecimal valorPromocional;
 
     /**
      * Indica se a promoção está ativa.
      * <p>Obrigatório para definir se o valor promocional será aplicado.</p>
      */
-    @NotNull
+    @Schema(description = "Indica se a promoção está ativa.", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     private Boolean promocaoAtiva;
 }

@@ -1,5 +1,6 @@
 package com.dcriar.api.dto.request.upload;
 
+import com.dcriar.api.validation.annotation.ValidFileUploadRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,8 +18,12 @@ import org.springframework.web.multipart.MultipartFile;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ValidFileUploadRequest
 public class FileUploadRequestDTO {
 
-    @Schema(description = "O arquivo a ser enviado.")
+    /**
+     * O arquivo a ser enviado. O conteúdo não pode ser vazio.
+     */
+    @Schema(description = "O arquivo a ser enviado.", requiredMode = Schema.RequiredMode.REQUIRED)
     private MultipartFile file;
 }

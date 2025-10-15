@@ -3,31 +3,34 @@ package com.dcriar.api.validation.validator;
 import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
 import com.dcriar.api.validation.annotation.ValidOrdemDeCorteRequest;
 import com.dcriar.domain.production.enums.ModoCalculo;
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorContext;
 
-/**
- * Validador para a requisição de criação de Ordem de Corte.
- * Garante que, se o modo de cálculo for MANUAL, as dimensões finais sejam fornecidas.
- */
-public class OrdemDeCorteRequestValidator implements ConstraintValidator<ValidOrdemDeCorteRequest, OrdemDeCorteRequestDTO> {
+import java.math.BigDecimal;
+
+public class OrdemDeCorteRequestValidator extends BaseValidator<ValidOrdemDeCorteRequest, OrdemDeCorteRequestDTO> {
 
     @Override
-    public boolean isValid(OrdemDeCorteRequestDTO dto, ConstraintValidatorContext context) {
-        if (dto == null) {
-            return true; // A validação de nulidade é feita pelo @NotNull no controller
+    protected void validate(OrdemDeCorteRequestDTO dto) {
+        addViolationIf(dto.getProdutoId() == null, "O ID do produto é obrigatório.", "produtoId");
+        addViolationIf(dto.getLotePrincipalId() == null, "O ID do lote de matéria-prima principal é obrigatório.", "lotePrincipalId");
+        addViolationIf(dto.getQuantidadeProduzida() == null, "A quantidade de unidades do produto a serem produzidas é obrigatória.", "quantidadeProduzida");
+        if (dto.getQuantidadeProduzida() != null) {
+            addViolationIf(dto.getQuantidadeProduzida() <= 0, "A quantidade produzida deve ser um número positivo.", "quantidadeProduzida");
         }
+        addViolationIf(dto.getModoCalculo() == null, "O modo de cálculo para o corte é obrigatório.", "modoCalculo");
 
-        // Se o modo de cálculo for MANUAL, as dimensões finais são obrigatórias.
         if (dto.getModoCalculo() == ModoCalculo.MANUAL) {
-            if (dto.getLarguraFinalCm() == null || dto.getComprimentoFinalCm() == null) {
-                context.disableDefaultConstraintViolation();
-                context.buildConstraintViolationWithTemplate("Para o modo de cálculo MANUAL, os campos 'larguraFinalCm' e 'comprimentoFinalCm' são obrigatórios.")
-                        .addPropertyNode("larguraFinalCm").addConstraintViolation();
-                return false;
+            addViolationIf(dto.getLarguraFinalCm() == null, "Para o modo de cálculo MANUAL, o campo 'larguraFinalCm' é obrigatório.", "larguraFinalCm");
+            addViolationIf(dto.getComprimentoFinalCm() == null, "Para o modo de cálculo MANUAL, o campo 'comprimentoFinalCm' é obrigatório.", "comprimentoFinalCm");
+            if (dto.getLarguraFinalCm() != null) {
+                addViolationIf(dto.getLarguraFinalCm().compareTo(BigDecimal.ZERO) <= 0, "A largura final deve ser um número positivo.", "larguraFinalCm");
+            }
+            if (dto.getComprimentoFinalCm() != null) {
+                addViolationIf(dto.getComprimentoFinalCm().compareTo(BigDecimal.ZERO) <= 0, "O comprimento final deve ser um número positivo.", "comprimentoFinalCm");
             }
         }
 
-        return true;
+        if (dto.getModoCalculo() == ModoCalculo.AUTOMATICO) {
+            addViolationIf(dto.getMargens() == null, "Para o modo de cálculo AUTOMATICO, o campo 'margens' é obrigatório.", "margens");
+        }
     }
 }

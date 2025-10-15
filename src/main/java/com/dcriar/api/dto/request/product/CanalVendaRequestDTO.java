@@ -1,7 +1,7 @@
 package com.dcriar.api.dto.request.product;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import com.dcriar.api.validation.annotation.ValidCanalVendaRequest;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 /**
@@ -14,12 +14,11 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ValidCanalVendaRequest
 public class CanalVendaRequestDTO {
     /**
      * O nome único do canal de venda (ex: "SHOPEE", "MERCADO_LIVRE", "LOJA_FISICA").
      */
-    @NotBlank(message = "O nome do canal de venda é obrigatório.")
-    @Size(max = 50, message = "O nome do canal de venda deve ter no máximo 50 caracteres.")
+    @Schema(description = "O nome único do canal de venda.", example = "SHOPEE", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
 }
-

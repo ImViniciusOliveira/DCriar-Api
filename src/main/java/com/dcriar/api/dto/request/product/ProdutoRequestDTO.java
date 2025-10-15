@@ -35,7 +35,7 @@ public class ProdutoRequestDTO {
     /**
      * A descrição detalhada sobre o produto, seu material e uso.
      */
-    @Schema(description = "Descrição detalhada sobre o produto, seu material e uso.")
+    @Schema(description = "Descrição detalhada sobre o produto, seu material e uso.", example = "Etiquetas de papel Kraft para embalagens artesanais.")
     private String descricao;
 
     /**
@@ -47,20 +47,20 @@ public class ProdutoRequestDTO {
     /**
      * A quantidade de itens que compõem uma unidade do produto vendido (ex: 100 etiquetas por pacote).
      */
-    @Schema(description = "Quantidade de itens que compõem uma unidade do produto vendido.", example = "100", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade de itens que compõem uma unidade do produto vendido (ex: 100 etiquetas por pacote).", example = "100", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer unidadesPorProduto;
 
     /**
      * A URL da imagem principal do produto para exibição no catálogo.
      */
-    @Schema(description = "URL da imagem principal do produto para exibição no catálogo.")
+    @Schema(description = "URL da imagem principal do produto para exibição no catálogo.", example = "https://cdn.dcriar.com/images/ETQ-KFT-RD5.jpg")
     private String fotoPrincipalUrl;
 
     /**
      * Define se o produto está ativo e disponível para operações de venda e produção.
      * Se não for fornecido, o padrão pode ser 'true'.
      */
-    @Schema(description = "Define se o produto está ativo e disponível para operações de venda e produção.", example = "true")
+    @Schema(description = "Define se o produto está ativo e disponível para operações de venda e produção. Se não for fornecido, o padrão é 'true'.", example = "true")
     private Boolean ativo;
 
     /**

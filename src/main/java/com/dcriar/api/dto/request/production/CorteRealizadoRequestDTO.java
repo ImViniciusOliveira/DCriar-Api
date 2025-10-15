@@ -1,6 +1,7 @@
 package com.dcriar.api.dto.request.production;
 
-import jakarta.validation.constraints.*;
+import com.dcriar.api.validation.annotation.ValidCorteRealizadoRequest;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import java.math.BigDecimal;
 
@@ -15,37 +16,35 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ValidCorteRealizadoRequest
 public class CorteRealizadoRequestDTO {
     /**
      * ID da ordem de produção à qual o corte está associado.
      */
-    @NotNull
+    @Schema(description = "ID da ordem de produção à qual o corte está associado.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long ordemDeProducaoId;
 
     /**
      * Largura do corte em centímetros.
      */
-    @NotNull
-    @DecimalMin("0.0")
+    @Schema(description = "Largura do corte em centímetros.", example = "10.5", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal larguraCm;
 
     /**
      * Comprimento do corte em centímetros.
      */
-    @NotNull
-    @DecimalMin("0.0")
+    @Schema(description = "Comprimento do corte em centímetros.", example = "15.0", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal comprimentoCm;
 
     /**
      * Quantidade de peças produzidas com este corte.
      */
-    @NotNull
-    @Min(1)
+    @Schema(description = "Quantidade de peças produzidas com este corte.", example = "50", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 
     /**
-     * Tipo de resultado do corte ("PRODUTO" ou "RETALHO").
+     * Tipo de resultado do corte (\"PRODUTO\" ou \"RETALHO\").
      */
-    @NotBlank
+    @Schema(description = "Tipo de resultado do corte (\"PRODUTO\" ou \"RETALHO\").", example = "PRODUTO", requiredMode = Schema.RequiredMode.REQUIRED)
     private String tipo;
 }

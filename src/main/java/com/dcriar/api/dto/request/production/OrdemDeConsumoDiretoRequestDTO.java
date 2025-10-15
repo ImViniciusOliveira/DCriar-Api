@@ -1,9 +1,7 @@
 package com.dcriar.api.dto.request.production;
 
+import com.dcriar.api.validation.annotation.ValidOrdemDeConsumoDiretoRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,21 +22,18 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ValidOrdemDeConsumoDiretoRequest
 public class OrdemDeConsumoDiretoRequestDTO {
 
-    @NotNull
     @Schema(description = "ID do produto a ser fabricado (deve ser um produto de consumo direto, como líquidos, pós ou unidades).", example = "5", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
-    @NotEmpty
     @Schema(description = "Lista de IDs dos lotes de matéria-prima a serem consumidos.", example = "[4]", requiredMode = Schema.RequiredMode.REQUIRED)
     private List<Long> lotesConsumidosIds;
 
     @Schema(description = "ID do canal de venda de destino do estoque (opcional). Se fornecido, o estoque produzido será alocado neste canal.", example = "1")
     private Long canalVendaDestinoId;
 
-    @NotNull
-    @Positive
     @Schema(description = "Quantidade de unidades do produto a serem produzidas.", example = "250", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidadeProduzida;
 
