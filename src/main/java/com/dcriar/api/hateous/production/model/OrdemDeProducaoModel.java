@@ -1,5 +1,6 @@
 package com.dcriar.api.hateous.production.model;
 
+import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
 import com.dcriar.api.dto.response.production.DetalhesCorteResponseDTO;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -60,6 +61,9 @@ public class OrdemDeProducaoModel extends RepresentationModel<OrdemDeProducaoMod
 
     @Schema(description = "Indica se a peça foi rotacionada para melhor aproveitamento.", nullable = true)
     private Boolean rotacionado;
+
+    @Schema(description = "Lista detalhada de todos os cortes realizados (produtos e retalhos).", nullable = true)
+    private List<CorteRealizadoResponseDTO> cortesRealizados;
 
     @Schema(description = "Detalhes sobre a otimização do corte, se aplicável.", nullable = true)
     private DetalhesCorteResponseDTO detalhesCorte;

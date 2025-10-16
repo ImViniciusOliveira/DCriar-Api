@@ -60,9 +60,9 @@ public class OrdemDeCorteRequestDTO {
     private ModoCalculo modoCalculo;
 
     /**
-     * As margens de segurança (em cm) a serem aplicadas (relevante no modo AUTOMATICO).
+     * As margens de segurança (em cm) a serem aplicadas. Relevante no modo AUTOMATICO, mas opcional (padrão zero se não fornecido).
      */
-    @Schema(description = "Margens de segurança (em cm) a serem aplicadas (relevante no modo AUTOMATICO).")
+    @Schema(description = "Margens de segurança (em cm) a serem aplicadas. Relevante no modo AUTOMATICO, mas opcional (padrão zero se não fornecido).")
     private MargensRequestDTO margens;
 
     /**

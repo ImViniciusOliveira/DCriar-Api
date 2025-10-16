@@ -90,9 +90,9 @@ INSERT INTO ordem_producao_lotes_consumidos (ordem_producao_id, lote_materia_pri
 
 -- ETAPA K: CORTES REALIZADOS DE EXEMPLO
 -- Assumindo que os inserts acima geraram IDs 1 e 2
-INSERT INTO cortes_realizados (ordem_de_producao_id, largura_cm, comprimento_cm, quantidade, tipo) VALUES
-    (1, 5.0, 5.0, 100, 'PRODUTO'),
-    (2, 9.0, 5.0, 50, 'PRODUTO');
+INSERT INTO cortes_realizados (ordem_de_producao_id, largura_cm, comprimento_cm, quantidade, tipo, retalho_categoria) VALUES
+    (1, 5.0, 5.0, 100, 'PRODUTO', NULL),
+    (2, 9.0, 5.0, 50, 'PRODUTO', NULL);
 
 -- ETAPA L: VENDAS DE EXEMPLO
 INSERT INTO vendas (data_venda, canal_venda_id, valor_total) VALUES (NOW() - INTERVAL '1 day', 3, 99.90);

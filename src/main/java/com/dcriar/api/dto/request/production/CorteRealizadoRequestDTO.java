@@ -47,4 +47,11 @@ public class CorteRealizadoRequestDTO {
      */
     @Schema(description = "Tipo de resultado do corte (\"PRODUTO\" ou \"RETALHO\").", example = "PRODUTO", requiredMode = Schema.RequiredMode.REQUIRED)
     private String tipo;
+
+    /**
+     * Categoria do retalho quando {@code tipo == "RETALHO"}.
+     * Valores sugeridos: "LATERAL", "FINAL". Nulo para produtos.
+     */
+    @Schema(description = "Categoria do retalho quando o tipo é \"RETALHO\". Valores sugeridos: \"LATERAL\", \"FINAL\". Nulo para produtos.", example = "LATERAL")
+    private String retalhoCategoria;
 }

@@ -1,8 +1,10 @@
 package com.dcriar.api.mapper.production;
 
 import com.dcriar.api.dto.request.production.MargensRequestDTO;
+import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
 import com.dcriar.api.hateous.production.model.OrdemDeProducaoModel;
+import com.dcriar.domain.production.entity.CorteRealizado;
 import com.dcriar.domain.production.entity.Margens;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import org.mapstruct.Mapper;
@@ -35,6 +37,7 @@ public interface OrdemDeProducaoMapper {
     @Mapping(source = "produto.id", target = "produtoId")
     @Mapping(source = "produto.nome", target = "nomeProduto")
     @Mapping(source = "lotesConsumidos", target = "lotesConsumidosIds", qualifiedByName = "lotesToIds")
+    @Mapping(source = "cortesRealizados", target = "cortesRealizados")
     OrdemDeProducaoResponseDTO toDto(OrdemDeProducao ordem);
 
     /**
@@ -57,6 +60,17 @@ public interface OrdemDeProducaoMapper {
      * @return A entidade {@link Margens} preenchida.
      */
     Margens toMargensEntity(MargensRequestDTO dto);
+
+    /**
+     * Converte a entidade {@link CorteRealizado} para seu DTO de resposta.
+     * O MapStruct usa este método para mapear a lista de cortes dentro do {@code toDto(OrdemDeProducao)}.
+     *
+     * @param corte A entidade de corte a ser convertida.
+     * @return O DTO de resposta correspondente.
+     */
+    @Mapping(source = "ordemDeProducao.id", target = "ordemDeProducaoId")
+    @Mapping(source = "retalhoCategoria", target = "retalhoCategoria")
+    CorteRealizadoResponseDTO toCorteDto(CorteRealizado corte);
 
     /**
      * Método auxiliar para converter um conjunto de LoteMateriaPrima em uma lista de IDs.

@@ -28,9 +28,5 @@ public class OrdemDeCorteRequestValidator extends BaseValidator<ValidOrdemDeCort
                 addViolationIf(dto.getComprimentoFinalCm().compareTo(BigDecimal.ZERO) <= 0, "O comprimento final deve ser um número positivo.", "comprimentoFinalCm");
             }
         }
-
-        if (dto.getModoCalculo() == ModoCalculo.AUTOMATICO) {
-            addViolationIf(dto.getMargens() == null, "Para o modo de cálculo AUTOMATICO, o campo 'margens' é obrigatório.", "margens");
-        }
     }
 }

@@ -61,6 +61,13 @@ public class CorteRealizado {
     private String tipo;
 
     /**
+     * Categoria do retalho quando {@code tipo == "RETALHO"}.
+     * Valores sugeridos: "LATERAL", "FINAL". Nulo para produtos.
+     */
+    @Column(length = 20)
+    private String retalhoCategoria;
+
+    /**
      * Cria uma instância de CorteRealizado a partir do DTO de request.
      * <p>
      * Centraliza regras de negócio de criação.
@@ -76,6 +83,7 @@ public class CorteRealizado {
                 .comprimentoCm(dto.getComprimentoCm())
                 .quantidade(dto.getQuantidade())
                 .tipo(dto.getTipo())
+                .retalhoCategoria(dto.getRetalhoCategoria())
                 .build();
     }
 
@@ -93,5 +101,6 @@ public class CorteRealizado {
         this.comprimentoCm = dto.getComprimentoCm();
         this.quantidade = dto.getQuantidade();
         this.tipo = dto.getTipo();
+        this.retalhoCategoria = dto.getRetalhoCategoria();
     }
 }
