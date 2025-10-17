@@ -20,11 +20,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -44,15 +44,20 @@ public class ProdutoController {
      * <p>
      * Exemplo de uso: GET /api/v1/produtos
      * @param pageable Parâmetros de paginação e ordenação
-     * @param pagedResourcesAssembler Montador de recursos HATEOAS
-     * @return Página de produtos com links HATEOAS
+     * @return Objeto com a lista de produtos e informações de paginação
      */
     @GetMapping
     @Operation(summary = "Listar todos os produtos de forma paginada")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
-    public PagedModel<ProdutoModel> findAll(@ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable, PagedResourcesAssembler<ProdutoResponseDTO> pagedResourcesAssembler) {
+    public ResponseEntity<Map<String, Object>> findAll(@ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable) {
         Page<ProdutoResponseDTO> produtosPage = produtoService.findAll(pageable);
-        return pagedResourcesAssembler.toModel(produtosPage, produtoModelAssembler);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("produtos", produtosPage.getContent());
+        response.put("total", produtosPage.getTotalElements());
+        response.put("pagina", produtosPage.getNumber() + 1);
+
+        return ResponseEntity.ok(response);
     }
 
     /**

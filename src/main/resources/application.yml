@@ -22,7 +22,7 @@ spring:
   # Configuração do Jackson para envelopar a resposta JSON.
   jackson:
     serialization:
-      wrap-root-value: true
+      wrap-root-value: false
 
   # Configuração de logging geral.
 logging:
