@@ -8,8 +8,6 @@ import com.dcriar.domain.product.service.ProdutoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,8 +19,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.hateoas.PagedModel;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,10 +41,9 @@ public class ProdutoController {
 
     /**
      * Lista todos os produtos cadastrados de forma paginada.
-     * <p>
-     * Exemplo de uso: GET /api/v1/produtos
-     * @param pageable Parâmetros de paginação e ordenação
-     * @return Objeto com a lista de produtos e informações de paginação
+     *
+     * @param pageable Parâmetros de paginação e ordenação.
+     * @return Objeto com a lista de produtos e informações de paginação.
      */
     @GetMapping
     @Operation(summary = "Listar todos os produtos de forma paginada")
@@ -70,10 +69,9 @@ public class ProdutoController {
 
     /**
      * Busca um produto pelo seu ID.
-     * <p>
-     * Exemplo de uso: GET /api/v1/produtos/{id}
-     * @param id ID do produto
-     * @return Produto encontrado com links HATEOAS
+     *
+     * @param id ID do produto.
+     * @return Produto encontrado com links HATEOAS.
      */
     @GetMapping("/{id}")
     @Operation(summary = "Buscar produto por ID")
@@ -88,10 +86,9 @@ public class ProdutoController {
 
     /**
      * Cria um novo produto.
-     * <p>
-     * Exemplo de uso: POST /api/v1/produtos
-     * @param requestDTO Dados do produto a ser criado
-     * @return Produto criado com links HATEOAS e header Location
+     *
+     * @param requestDTO Dados do produto a ser criado.
+     * @return Produto criado com links HATEOAS e header Location.
      */
     @PostMapping
     @Operation(summary = "Criar um novo produto")
@@ -106,53 +103,50 @@ public class ProdutoController {
     }
 
     /**
-     * Atualiza parcialmente um produto existente (PATCH).
-     * <p>
-     * Exemplo de uso: PATCH /api/v1/produtos/{id}
-     * @param id ID do produto
-     * @param fields Campos a serem atualizados
-     * @return Produto atualizado com links HATEOAS
+     * Atualiza um produto existente por completo (PUT).
+     *
+     * @param id O ID do produto a ser atualizado.
+     * @param requestDTO O DTO com os dados completos do produto.
+     * @return O modelo HATEOAS do produto atualizado.
      */
-    @PatchMapping("/{id}")
-    @Operation(summary = "Atualizar parcialmente um produto existente (PATCH)",
-            description = "Este método permite a atualização de um ou mais campos de um produto. Envie apenas os campos que deseja alterar.")
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar um produto por completo (PUT)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Produto atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos", content = @Content),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
     })
-    public ProdutoModel update(@PathVariable Long id,
-                             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                                     description = "Corpo da requisição para atualização parcial. Envie apenas os campos que deseja alterar.",
-                                     content = @Content(mediaType = "application/json",
-                                             schema = @Schema(implementation = ProdutoRequestDTO.class),
-                                             examples = {
-                                                     @ExampleObject(
-                                                             name = "Exemplo Completo",
-                                                             summary = "Referência de todos os campos",
-                                                             description = "Este exemplo mostra todos os campos que podem ser atualizados. Em uma requisição PATCH real, você normalmente enviaria apenas os campos que mudaram.",
-                                                             value = "{\"nome\": \"Etiqueta Adesiva 10x15cm Couchê\", \"sku\": \"ETQ-COU-10X15\", \"descricao\": \"Etiqueta de papel couchê com acabamento brilhante.\", \"cor\": \"Branco\", \"unidadesPorProduto\": 500, \"fotoPrincipalUrl\": \"\", \"ativo\": true, \"tipoMateriaPrimaId\": 2, \"dimensoesUnitarias\": {\"larguraCm\": 10, \"comprimentoCm\": 15}}"
-                                                     ),
-                                                     @ExampleObject(
-                                                             name = "Exemplo Parcial (Apenas Foto)",
-                                                             summary = "Atualização de um único campo",
-                                                             description = "Este é um exemplo comum, onde apenas a URL da foto principal é atualizada após um upload.",
-                                                             value = "{\"fotoPrincipalUrl\": \"\"}"
-                                                     )
-                                             }
-                                     )
-                             )
-                             @RequestBody Map<String, Object> fields) {
+    public ResponseEntity<ProdutoModel> update(@PathVariable Long id, @RequestBody @Valid ProdutoRequestDTO requestDTO) {
+        ProdutoResponseDTO produtoAtualizado = produtoService.update(id, requestDTO);
+        ProdutoModel produtoModel = produtoModelAssembler.toModel(produtoAtualizado);
+        return ResponseEntity.ok(produtoModel);
+    }
+
+    /**
+     * Atualiza parcialmente um produto existente (PATCH).
+     *
+     * @param id O ID do produto a ser atualizado.
+     * @param fields Um mapa com os campos a serem alterados.
+     * @return O modelo HATEOAS do produto atualizado.
+     */
+    @PatchMapping("/{id}")
+    @Operation(summary = "Atualizar parcialmente um produto (PATCH)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Produto atualizado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
+    })
+    public ResponseEntity<ProdutoModel> patch(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
         ProdutoResponseDTO produtoAtualizado = produtoService.patch(id, fields);
-        return produtoModelAssembler.toModel(produtoAtualizado);
+        ProdutoModel produtoModel = produtoModelAssembler.toModel(produtoAtualizado);
+        return ResponseEntity.ok(produtoModel);
     }
 
     /**
      * Deleta um produto pelo seu ID.
-     * <p>
-     * Exemplo de uso: DELETE /api/v1/produtos/{id}
-     * @param id ID do produto
-     * @return Resposta sem conteúdo (204) se deletado com sucesso
+     *
+     * @param id ID do produto.
+     * @return Resposta sem conteúdo (204) se deletado com sucesso.
      */
     @DeleteMapping("/{id}")
     @Operation(summary = "Deletar um produto")
@@ -163,5 +157,28 @@ public class ProdutoController {
     public ResponseEntity<Void> deleteById(@PathVariable Long id) {
         produtoService.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Realiza o upload de uma foto e a associa a um produto existente.
+     * <p>
+     * Este endpoint orquestra a ação de negócio de enviar um arquivo de imagem e
+     * vinculá-lo a um produto específico em uma única operação atômica.
+     *
+     * @param id   O ID do produto ao qual a foto será associada.
+     * @param file O arquivo de imagem enviado como 'multipart/form-data'.
+     * @return Um ResponseEntity com status 200 OK e o modelo HATEOAS do produto atualizado.
+     */
+    @PostMapping(path = {"/{id}/foto", "/{id}/foto/"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Fazer upload da foto de um produto")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Foto atualizada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Nenhum arquivo enviado ou arquivo inválido", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
+    })
+    public ResponseEntity<ProdutoModel> uploadFoto(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        ProdutoResponseDTO produtoAtualizado = produtoService.uploadFoto(id, file);
+        ProdutoModel produtoModel = produtoModelAssembler.toModel(produtoAtualizado);
+        return ResponseEntity.ok(produtoModel);
     }
 }

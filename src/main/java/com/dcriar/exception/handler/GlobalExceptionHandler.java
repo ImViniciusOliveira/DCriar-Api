@@ -213,12 +213,12 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata exceções internas do servidor (HTTP 500 Internal Server Error).
-     * Intercepta {@link JsonMergeException} e {@link ExcecaoArmazenamentoArquivo}.
+     * Intercepta {@link JsonMergeException} e {@link ArquivoStorageException}.
      *
      * @param ex A exceção interna do servidor lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 500.
      */
-    @ExceptionHandler({JsonMergeException.class, ExcecaoArmazenamentoArquivo.class})
+    @ExceptionHandler({JsonMergeException.class, ArquivoStorageException.class})
     public ResponseEntity<ErrorResponseDTO> handleInternalServerExceptions(RuntimeException ex) {
         log.error("Erro interno do servidor: ", ex);
         String msg = "Ocorreu um erro interno inesperado. Tente novamente mais tarde.";

@@ -4,6 +4,7 @@ import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -62,4 +63,14 @@ public interface ProdutoService {
      * @param id O ID do produto a ser deletado.
      */
     void deleteById(Long id);
+
+    /**
+     * Realiza o upload de uma foto para um produto específico, associando-a a ele.
+     * Este método orquestra o armazenamento do arquivo e a atualização da entidade Produto.
+     *
+     * @param produtoId O ID do produto ao qual a foto será associada.
+     * @param file O arquivo de imagem a ser enviado.
+     * @return O DTO de resposta do produto atualizado com a nova foto.
+     */
+    ProdutoResponseDTO uploadFoto(Long produtoId, MultipartFile file);
 }

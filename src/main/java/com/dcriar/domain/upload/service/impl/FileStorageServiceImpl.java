@@ -2,7 +2,7 @@ package com.dcriar.domain.upload.service.impl;
 
 import com.dcriar.domain.upload.service.FileStorageService;
 import com.dcriar.exception.custom.ArquivoNaoEncontradoException;
-import com.dcriar.exception.custom.ExcecaoArmazenamentoArquivo;
+import com.dcriar.exception.custom.ArquivoStorageException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -12,6 +12,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,7 +37,7 @@ public class FileStorageServiceImpl implements FileStorageService {
      * e cria o diretório se ele não existir.
      *
      * @param uploadDir O caminho para o diretório de upload.
-     * @throws ExcecaoArmazenamentoArquivo Se não for possível criar o diretório de upload.
+     * @throws ArquivoStorageException Se não for possível criar o diretório de upload.
      */
     public FileStorageServiceImpl(@Value("${file.upload-dir}") String uploadDir) {
         this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
@@ -44,7 +45,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         try {
             Files.createDirectories(this.fileStorageLocation);
         } catch (Exception ex) {
-            throw new ExcecaoArmazenamentoArquivo("Não foi possível criar o diretório onde os arquivos de upload serão armazenados.", ex);
+            throw new ArquivoStorageException("Não foi possível criar o diretório onde os arquivos de upload serão armazenados.", ex);
         }
     }
 
@@ -54,30 +55,33 @@ public class FileStorageServiceImpl implements FileStorageService {
      *
      * @param file O arquivo multipart a ser armazenado.
      * @return O novo nome do arquivo gerado.
-     * @throws ExcecaoArmazenamentoArquivo Se o nome do arquivo contiver sequências de caminho inválidas ou se ocorrer um erro de IO.
+     * @throws ArquivoStorageException Se o nome do arquivo contiver sequências de caminho inválidas ou se ocorrer um erro de IO.
      */
     @Override
     public String storeFile(MultipartFile file) {
-        // Limpa e normaliza o nome do arquivo original para remover quaisquer caracteres ou sequências de caminho perigosas.
         String originalFileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
 
-        try {
-            // Validação de segurança para evitar ataques de "path traversal".
-            if (originalFileName.contains("..")) {
-                throw new ExcecaoArmazenamentoArquivo("Desculpe! O nome do arquivo contém uma sequência de caminho inválida: " + originalFileName);
-            }
+        if (originalFileName.contains("..")) {
+            throw new ArquivoStorageException("Desculpe! O nome do arquivo contém uma sequência de caminho inválida: " + originalFileName);
+        }
 
-            // Gera um nome de arquivo único para evitar sobrescrever arquivos existentes.
+        if (originalFileName.isBlank()) {
+            throw new ArquivoStorageException("Desculpe! O nome do arquivo é inválido ou vazio.");
+        }
+
+        if (file.isEmpty()) {
+            throw new ArquivoStorageException("Desculpe! O arquivo enviado está vazio: " + originalFileName);
+        }
+
+        try (InputStream inputStream = file.getInputStream()) {
             String newFileName = UUID.randomUUID() + "_" + originalFileName;
 
-            // Resolve o caminho completo onde o arquivo será salvo.
             Path targetLocation = this.fileStorageLocation.resolve(newFileName);
-            // Copia o conteúdo do arquivo para o local de destino. Se um arquivo com o mesmo nome já existir, ele será substituído.
-            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
             return newFileName;
         } catch (IOException ex) {
-            throw new ExcecaoArmazenamentoArquivo("Não foi possível armazenar o arquivo " + originalFileName + ". Por favor, tente novamente!", ex);
+            throw new ArquivoStorageException("Não foi possível armazenar o arquivo " + originalFileName + ". Por favor, tente novamente!", ex);
         }
     }
 
@@ -86,20 +90,21 @@ public class FileStorageServiceImpl implements FileStorageService {
      *
      * @param fileName O nome do arquivo a ser carregado.
      * @return O arquivo como um objeto Resource.
-     * @throws ArquivoNaoEncontradoException Se o arquivo não for encontrado ou a URL do recurso for malformada.
+     * @throws ArquivoNaoEncontradoException Se o arquivo não for encontrado.
+     * @throws ArquivoStorageException Se a URL do recurso for malformada.
      */
     @Override
     public Resource loadFileAsResource(String fileName) {
         try {
             Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
-            if (resource.exists()) {
+            if (resource.exists() && resource.isReadable()) {
                 return resource;
             } else {
                 throw new ArquivoNaoEncontradoException("Arquivo não encontrado: " + fileName);
             }
         } catch (MalformedURLException ex) {
-            throw new ArquivoNaoEncontradoException("Arquivo não encontrado: " + fileName, ex);
+            throw new ArquivoStorageException("Erro ao formar a URL para o arquivo: " + fileName, ex);
         }
     }
 
@@ -108,6 +113,7 @@ public class FileStorageServiceImpl implements FileStorageService {
      * Se o nome do arquivo for nulo ou vazio, a operação é ignorada.
      *
      * @param fileName O nome do arquivo a ser excluído.
+     * @throws ArquivoStorageException se ocorrer um erro de IO durante a exclusão.
      */
     @Override
     public void deleteFile(String fileName) {
@@ -118,11 +124,10 @@ public class FileStorageServiceImpl implements FileStorageService {
         try {
             Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
             Files.deleteIfExists(filePath);
-            log.info("Arquivo excluído com sucesso: {}", fileName);
+            log.info("Arquivo de foto antigo excluído com sucesso: {}", fileName);
         } catch (IOException ex) {
             log.error("Não foi possível excluir o arquivo: {}", fileName, ex);
-            // Dependendo do caso de uso, você pode querer lançar uma exceção aqui
-            // Por enquanto, apenas registramos o erro e continuamos
+            throw new ArquivoStorageException("Não foi possível excluir o arquivo " + fileName, ex);
         }
     }
 

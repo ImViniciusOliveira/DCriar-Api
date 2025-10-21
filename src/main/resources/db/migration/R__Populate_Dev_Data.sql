@@ -53,13 +53,13 @@ INSERT INTO canais_venda (nome) VALUES
 
 -- ETAPA E: PRODUTOS ACABADOS DIVERSIFICADOS
 INSERT INTO produtos (nome, sku, descricao, cor, unidades_por_produto, ativo, foto_principal_url, tipo_materia_prima_id, largura_cm_unitaria, comprimento_cm_unitario) VALUES
-    ('Cartão de Visita Premium', 'CV-PREM-9X5', 'Cartão de visita em papel couchê 300g, laminação fosca.', 'Branco', 100, true, 'cv_premium.jpg', 1, 9.0, 5.0),
-    ('Banner Comercial 1,20x0,80m', 'BNR-COM-120X80', 'Banner em lona fosca 440g com bastão e corda.', 'Personalizada', 1, true, 'banner_comercial.jpg', 2, 80.0, 120.0),
-    ('Adesivo Redondo 5cm', 'ADSV-RD-5', 'Adesivo em vinil branco para uso geral, corte redondo.', 'Branco', 100, true, 'adesivo_redondo.jpg', 3, 5.0, 5.0),
-    ('Folder A4 (Dobrado)', 'FLD-A4-OLD', 'Folder promocional antigo. Produto descontinuado.', 'Colorido', 1, false, 'folder_antigo.jpg', 1, 21.0, 29.7),
-    ('Rótulo para Cerveja Long Neck', 'ROT-CERV-LN', 'Rótulo para garrafas, resistente à umidade, em BOPP transparente.', 'Transparente', 50, true, 'rotulo_cerveja.jpg', 4, 8.0, 7.0),
-    ('Adesivo Holográfico (Novo)', 'ADSV-HOLO-10', 'Adesivo com efeito holográfico, corte especial.', 'Holográfico', 100, true, null, 3, 10.0, 10.0),
-    ('Tag para Roupas Kraft', 'TAG-KFT-4X9', 'Tag de papel kraft 180g com furo.', 'Pardo', 100, true, 'tag_kraft.jpg', 5, 4.0, 9.0);
+    ('Cartão de Visita Premium', 'CV-PREM-9X5', 'Cartão de visita em papel couchê 300g, laminação fosca.', 'Branco', 100, true, '', 1, 9.0, 5.0),
+    ('Banner Comercial 1,20x0,80m', 'BNR-COM-120X80', 'Banner em lona fosca 440g com bastão e corda.', 'Personalizada', 1, true, '', 2, 80.0, 120.0),
+    ('Adesivo Redondo 5cm', 'ADSV-RD-5', 'Adesivo em vinil branco para uso geral, corte redondo.', 'Branco', 100, true, '', 3, 5.0, 5.0),
+    ('Folder A4 (Dobrado)', 'FLD-A4-OLD', 'Folder promocional antigo. Produto descontinuado.', 'Colorido', 1, false, '', 1, 21.0, 29.7),
+    ('Rótulo para Cerveja Long Neck', 'ROT-CERV-LN', 'Rótulo para garrafas, resistente à umidade, em BOPP transparente.', 'Transparente', 50, true, '', 4, 8.0, 7.0),
+    ('Adesivo Holográfico (Novo)', 'ADSV-HOLO-10', 'Adesivo com efeito holográfico, corte especial.', 'Holográfico', 100, true, '', 3, 10.0, 10.0),
+    ('Tag para Roupas Kraft', 'TAG-KFT-4X9', 'Tag de papel kraft 180g com furo.', 'Pardo', 100, true, '', 5, 4.0, 9.0);
 
 -- ETAPA F: ESTOQUE MESTRE INICIAL (COM VARIAÇÕES)
 INSERT INTO movimentacoes_estoque_produto (produto_id, data, tipo, quantidade, motivo) VALUES

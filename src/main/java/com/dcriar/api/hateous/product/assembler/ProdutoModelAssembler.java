@@ -50,8 +50,10 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
      * Links adicionados:
      * <ul>
      *   <li>Auto (self)</li>
-     *   <li>Atualizar produto</li>
+     *   <li>Atualizar produto (PUT)</li>
+     *   <li>Atualizar produto parcialmente (PATCH)</li>
      *   <li>Deletar produto</li>
+     *   <li>Fazer upload de foto</li>
      *   <li>Listar todos os produtos</li>
      *   <li>Buscar tipos de matéria-prima</li>
      *   <li>Estoques do produto</li>
@@ -68,7 +70,9 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
         // Links do próprio recurso
         model.add(linkTo(methodOn(ProdutoController.class).findById(dto.getId())).withSelfRel());
         model.add(linkTo(methodOn(ProdutoController.class).update(dto.getId(), null)).withRel("atualizar-produto"));
+        model.add(linkTo(methodOn(ProdutoController.class).patch(dto.getId(), null)).withRel("atualizar-parcialmente-produto"));
         model.add(linkTo(methodOn(ProdutoController.class).deleteById(dto.getId())).withRel("deletar-produto"));
+        model.add(linkTo(methodOn(ProdutoController.class).uploadFoto(dto.getId(), null)).withRel("upload-foto"));
 
         // Links de navegação e descoberta
         model.add(linkTo(methodOn(ProdutoController.class).findAll()).withRel("produtos"));

@@ -24,7 +24,7 @@ spring:
     serialization:
       wrap-root-value: false
 
-  # Configuração de logging geral.
+# Configurações de logging geral.
 logging:
   level:
     # Reduz o log do Hibernate para mostrar apenas avisos (WARN) e erros.
@@ -40,7 +40,9 @@ security:
 
 # Configurações de Upload de Arquivos
 file:
-  upload-dir: ./uploads
+  # Define o diretório de upload fora da pasta do projeto, no diretório home do usuário.
+  # Isso evita que arquivos de upload sejam commitados acidentalmente no Git.
+  upload-dir: ${user.home}/dcriar_uploads
 
 # Configurações do Springdoc para documentação da API
 springdoc:
