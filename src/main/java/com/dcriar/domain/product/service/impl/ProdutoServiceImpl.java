@@ -1,6 +1,6 @@
 package com.dcriar.domain.product.service.impl;
-
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
+
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.product.entity.Estoque;
@@ -156,6 +156,7 @@ public class ProdutoServiceImpl implements ProdutoService {
 
         // Passo 3: Traduz os nomes de campos do frontend (contrato de resposta) para os nomes
         // esperados pelo backend (contrato de requisição).
+        // TODO: (Refatoração) Mover a lógica de 'translateFieldNames' para a camada de Controller. A camada de serviço não deveria ter conhecimento sobre os nomes de campos específicos do contrato de resposta do frontend. O ideal é que essa tradução ocorra no Controller antes de chamar o serviço, ou usando um DTO específico para a operação PATCH.
         translateFieldNames(fields);
 
         // Passo 4: Converte a entidade atual em um mapa, de forma segura, para servir de base.

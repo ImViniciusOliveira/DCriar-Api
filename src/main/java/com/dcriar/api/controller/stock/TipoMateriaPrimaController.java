@@ -59,6 +59,21 @@ public class TipoMateriaPrimaController {
         return ResponseEntity.ok(pagedModel);
     }
 
+    /**
+     * Método de sobrecarga para a construção de links HATEOAS.
+     * <p>
+     * Não é um endpoint real e não deve ser chamado diretamente.
+     * Sua única finalidade é servir como um alvo seguro para o {@code linkTo(methodOn(...))},
+     * evitando a passagem de {@code null} para parâmetros que não devem ser nulos
+     * e resolvendo a ambiguidade de qual método {@code findAll} chamar.
+     * @return null, pois nunca é executado.
+     */
+    @SuppressWarnings("unused") // Usado por reflexão pelo Spring HATEOAS
+    public PagedModel<TipoMateriaPrimaModel> findAll() {
+        // O tipo de retorno corresponde ao que o assembler espera, mas o método nunca é executado.
+        return null;
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar tipo de matéria-prima por ID")
     public ResponseEntity<TipoMateriaPrimaModel> findById(@PathVariable Long id) {

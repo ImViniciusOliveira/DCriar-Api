@@ -6,17 +6,19 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Configuração global de CORS (Cross-Origin Resource Sharing) para a aplicação.
- * Permite que o frontend (rodando em http://localhost:4200) faça requisições
- * para o backend sem a necessidade de um proxy.
+ * <p>
+ * Esta classe é essencial para permitir que o frontend (rodando em http://localhost:4200)
+ * se comunique com o backend (rodando em http://localhost:8080) durante o desenvolvimento,
+ * resolvendo os erros de política de mesma origem do navegador.
  */
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
+public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/v1/**") // Aplica a configuração a todos os endpoints sob /api/v1/
                 .allowedOrigins("http://localhost:4200") // Permite requisições desta origem (Frontend Angular)
-                .allowedMethods("GET", "POST", "PATCH", "DELETE", "PUT", "OPTIONS", "HEAD") // Métodos HTTP permitidos
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD") // Métodos HTTP permitidos
                 .allowCredentials(true); // Permite o envio de cookies e headers de autenticação
     }
 }

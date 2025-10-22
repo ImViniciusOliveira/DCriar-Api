@@ -58,6 +58,20 @@ public class LoteMateriaPrimaController {
         return ResponseEntity.ok(loteMateriaPrimaModelAssembler.toCollectionModel(lotes));
     }
 
+    /**
+     * Método de sobrecarga para a construção de links HATEOAS.
+     * <p>
+     * Não é um endpoint real e não deve ser chamado diretamente.
+     * Sua única finalidade é servir como um alvo seguro para o {@code linkTo(methodOn(...))},
+     * evitando a ambiguidade de qual método {@code findAll} chamar.
+     * @return null, pois nunca é executado.
+     */
+    @SuppressWarnings("unused") // Usado por reflexão pelo Spring HATEOAS
+    public org.springframework.hateoas.CollectionModel<LoteMateriaPrimaModel> findAll() {
+        // O tipo de retorno é genérico, pois este método nunca é executado.
+        return null;
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar um lote por ID")
     @ApiResponses(value = {

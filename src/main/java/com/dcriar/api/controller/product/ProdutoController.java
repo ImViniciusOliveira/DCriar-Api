@@ -18,13 +18,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -43,28 +43,47 @@ public class ProdutoController {
      * Lista todos os produtos cadastrados de forma paginada.
      *
      * @param pageable Parâmetros de paginação e ordenação.
-     * @return Objeto com a lista de produtos e informações de paginação.
+     * @return Modelo paginado HATEOAS com a lista de produtos.
      */
     @GetMapping
     @Operation(summary = "Listar todos os produtos de forma paginada")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
-    public ResponseEntity<Map<String, Object>> findAll(@ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable) {
+    public ResponseEntity<PagedModel<ProdutoModel>> findAll(
+            @ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
+            PagedResourcesAssembler<ProdutoResponseDTO> pagedResourcesAssembler
+    ) {
         Page<ProdutoResponseDTO> produtosPage = produtoService.findAll(pageable);
+        // O assembler é usado aqui, recebido como parâmetro do método
+        PagedModel<ProdutoModel> pagedModel = pagedResourcesAssembler.toModel(produtosPage, produtoModelAssembler);
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("produtos", produtosPage.getContent());
-        response.put("total", produtosPage.getTotalElements());
-        response.put("pagina", produtosPage.getNumber() + 1);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(pagedModel);
     }
 
     /**
      * Método de sobrecarga para a construção de links HATEOAS.
-     * Não é um endpoint e não deve ser chamado diretamente.
+     * Não é um endpoint real e não deve ser chamado diretamente.
+     * Sua única finalidade é servir como um alvo seguro para o {@code linkTo(methodOn(...))},
+     * evitando a passagem de {@code null} para parâmetros anotados como {@code @NonNull}.
+     * @return null, pois nunca é executado.
      */
+    @SuppressWarnings("unused") // Usado por reflexão pelo Spring HATEOAS
     public PagedModel<ProdutoModel> findAll() {
         return null;
+    }
+
+    /**
+     * Retorna um modelo de produto "em branco" com os links HATEOAS necessários para a criação.
+     * Este endpoint serve como um "template" para o frontend poder descobrir as URLs de ações relacionadas,
+     * como a busca de tipos de matéria-prima, antes mesmo de um produto ser criado.
+     *
+     * @return Um modelo HATEOAS de um produto com valores padrão e links para ações.
+     */
+    @GetMapping("/new")
+    @Operation(summary = "Obter um modelo de produto para criação")
+    @ApiResponse(responseCode = "200", description = "Modelo de produto retornado com sucesso")
+    public ResponseEntity<ProdutoModel> getNewProductTemplate() {
+        // Retorna um DTO vazio que o assembler transformará em um modelo com os links HATEOAS corretos.
+        return produtoModelAssembler.toOkResponseEntity(new ProdutoResponseDTO());
     }
 
     /**
@@ -79,9 +98,9 @@ public class ProdutoController {
             @ApiResponse(responseCode = "200", description = "Produto encontrado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
     })
-    public ProdutoModel findById(@PathVariable Long id) {
+    public ResponseEntity<ProdutoModel> findById(@PathVariable Long id) {
         ProdutoResponseDTO produto = produtoService.findById(id);
-        return produtoModelAssembler.toModel(produto);
+        return produtoModelAssembler.toOkResponseEntity(produto);
     }
 
     /**
@@ -118,8 +137,7 @@ public class ProdutoController {
     })
     public ResponseEntity<ProdutoModel> update(@PathVariable Long id, @RequestBody @Valid ProdutoRequestDTO requestDTO) {
         ProdutoResponseDTO produtoAtualizado = produtoService.update(id, requestDTO);
-        ProdutoModel produtoModel = produtoModelAssembler.toModel(produtoAtualizado);
-        return ResponseEntity.ok(produtoModel);
+        return produtoModelAssembler.toOkResponseEntity(produtoAtualizado);
     }
 
     /**
@@ -138,8 +156,7 @@ public class ProdutoController {
     })
     public ResponseEntity<ProdutoModel> patch(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
         ProdutoResponseDTO produtoAtualizado = produtoService.patch(id, fields);
-        ProdutoModel produtoModel = produtoModelAssembler.toModel(produtoAtualizado);
-        return ResponseEntity.ok(produtoModel);
+        return produtoModelAssembler.toOkResponseEntity(produtoAtualizado);
     }
 
     /**
@@ -169,7 +186,7 @@ public class ProdutoController {
      * @param file O arquivo de imagem enviado como 'multipart/form-data'.
      * @return Um ResponseEntity com status 200 OK e o modelo HATEOAS do produto atualizado.
      */
-    @PostMapping(path = {"/{id}/foto", "/{id}/foto/"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Fazer upload da foto de um produto")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Foto atualizada com sucesso"),
@@ -178,7 +195,6 @@ public class ProdutoController {
     })
     public ResponseEntity<ProdutoModel> uploadFoto(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
         ProdutoResponseDTO produtoAtualizado = produtoService.uploadFoto(id, file);
-        ProdutoModel produtoModel = produtoModelAssembler.toModel(produtoAtualizado);
-        return ResponseEntity.ok(produtoModel);
+        return produtoModelAssembler.toOkResponseEntity(produtoAtualizado);
     }
 }
