@@ -65,6 +65,7 @@ public class GlobalExceptionHandler {
         else if (ex instanceof PrecoNaoEncontradoException e) { details.put("precoId", String.valueOf(e.getId())); }
         else if (ex instanceof EstoqueNaoEncontradoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("canalVendaId", String.valueOf(e.getCanalVendaId())); }
 
+        log.warn("Exceção de Recurso Não Encontrado: {}. Detalhes: {}", ex.getMessage(), details);
         return buildErrorResponse(ex, HttpStatus.NOT_FOUND, details);
     }
 
@@ -87,6 +88,7 @@ public class GlobalExceptionHandler {
             ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
+        log.warn("Exceção de Regra de Negócio: {}", ex.getMessage());
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, Map.of("info", ex.getMessage()));
     }
 
@@ -107,6 +109,7 @@ public class GlobalExceptionHandler {
         else if (ex instanceof ProdutoNomeDuplicadoException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof ProdutoSkuDuplicadoException e) { details.put("sku", e.getSku()); }
 
+        log.warn("Exceção de Conflito: {}. Detalhes: {}", ex.getMessage(), details);
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
     }
 
@@ -119,6 +122,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ProdutoInvalidoException.class)
     public ResponseEntity<ErrorResponseDTO> handleMultiFieldValidation(ProdutoInvalidoException ex) {
+        log.warn("Exceção de Produto Inválido: {}. Detalhes: {}", ex.getMessage(), ex.getErrors());
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, ex.getErrors());
     }
 
@@ -153,6 +157,7 @@ public class GlobalExceptionHandler {
             details.put("quantidadeRequisitada", String.valueOf(e.getQuantidadeRequisitada()));
             details.put("saldoDisponivel", String.valueOf(e.getSaldoDisponivel()));
         }
+        log.warn("Exceção de Estoque Insuficiente: {}. Detalhes: {}", ex.getMessage(), details);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 
@@ -172,6 +177,7 @@ public class GlobalExceptionHandler {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
         ex.getBindingResult().getGlobalErrors().forEach(error -> errors.put(error.getObjectName(), error.getDefaultMessage()));
+        log.warn("Erros de validação de argumento de método: {}", errors);
         return buildErrorResponse("Erros de validação encontrados", HttpStatus.BAD_REQUEST, errors);
     }
 
@@ -208,6 +214,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
         String msg = String.format("Método HTTP '%s' não permitido para este recurso.", ex.getMethod());
         String metodosPermitidos = Objects.requireNonNull(ex.getSupportedHttpMethods()).stream().map(HttpMethod::name).collect(Collectors.joining(", "));
+        log.warn("Método HTTP não permitido: {}. Métodos permitidos: {}", ex.getMethod(), metodosPermitidos);
         return buildErrorResponse(msg, HttpStatus.METHOD_NOT_ALLOWED, Map.of("metodosPermitidos", metodosPermitidos));
     }
 

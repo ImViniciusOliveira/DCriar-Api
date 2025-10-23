@@ -36,9 +36,10 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
 
     /**
      * Converte um DTO de produto em seu modelo de representação HATEOAS.
-     * <p>Adiciona links de navegação globais (como a coleção de produtos) e,
-     * se o produto já existir (tiver um ID), adiciona links de auto-referência
-     * e ações específicas (atualizar, deletar, etc.).
+     * <p>Adiciona links de navegação globais e, se o produto já existir (tiver um ID),
+     * adiciona links de auto-referência e ações específicas (atualizar, deletar, etc.).
+     * <p>Os links para consulta de estoque por canal só são adicionados se o produto
+     * possuir estoque distribuído, para evitar links que resultem em 404 Not Found.
      *
      * @param dto DTO de resposta do produto
      * @return Modelo HATEOAS enriquecido
@@ -62,8 +63,14 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
             model.add(linkTo(methodOn(ProdutoController.class).uploadFoto(dto.getId(), null)).withRel("upload-foto")); // Para MultipartFile, null é aceitável
 
             // Links para recursos relacionados
-            model.add(linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorProduto(dto.getId())).withRel("estoques-do-produto"));
             model.add(linkTo(methodOn(EstoqueProdutoController.class).listarMovimentacoesPorProduto(dto.getId())).withRel("historico-movimentacoes"));
+
+            // Adiciona links de estoque por canal apenas se houver estoque distribuído.
+            // Isso evita que o frontend receba um link que resultaria em 404 (Not Found).
+            if (dto.getEstoqueDistribuidoTotal() != null && dto.getEstoqueDistribuidoTotal() > 0) {
+                model.add(linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorProduto(dto.getId())).withRel("estoques-do-produto"));
+                model.add(linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorProduto(dto.getId())).withRel("estoque-por-canal"));
+            }
         }
 
         return model;
