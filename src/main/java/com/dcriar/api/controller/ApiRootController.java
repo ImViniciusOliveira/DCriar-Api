@@ -3,7 +3,7 @@ package com.dcriar.api.controller;
 import com.dcriar.api.controller.product.ProdutoController;
 import com.dcriar.api.controller.sales.VendaController;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
-import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
+import com.dcriar.api.controller.production.OrdemDeProducaoController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.hateoas.Link;
@@ -40,9 +40,9 @@ public class ApiRootController {
         rootModel.add(Link.of(produtosBase).withRel("produtos"));
         rootModel.add(Link.of(produtosBase + "{?page,size,sort}").withRel("produtos-paged"));
 
-        rootModel.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));
+        rootModel.add(linkTo(methodOn(LoteMateriaPrimaController.class).findAll()).withRel("lotes-materia-prima"));
         rootModel.add(linkTo(methodOn(VendaController.class).findAll()).withRel("vendas"));
-        rootModel.add(linkTo(methodOn(LoteMateriaPrimaController.class).findAll()).withRel("estoque-materia-prima"));
+        rootModel.add(linkTo(methodOn(OrdemDeProducaoController.class).listarTodas()).withRel("ordens-de-producao"));
 
         return rootModel;
     }

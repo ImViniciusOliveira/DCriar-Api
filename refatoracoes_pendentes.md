@@ -13,6 +13,15 @@ Este documento lista pontos de melhoria na arquitetura e no código que foram id
 
 ---
 
+### 2. `CanalVendaServiceImpl.deleteById` - Validação de Integridade Referencial
+
+- **Problema:** O método `deleteById` em `CanalVendaServiceImpl` atualmente permite a exclusão de um `CanalVenda` sem verificar se ele está sendo referenciado por outras entidades, como `Estoque`.
+- **Por que é um problema?** Isso pode levar a registros de estoque "órfãos" no banco de dados, causando inconsistências de dados e potenciais erros `NullPointerException` em outras partes do sistema que esperam que um estoque sempre tenha um canal de venda associado.
+- **Solução Proposta:** Antes de deletar um `CanalVenda`, o serviço deve consultar o `EstoqueRepository` (e qualquer outro repositório relevante) para verificar se existem registros associados a esse canal. Se o canal de venda estiver em uso, uma exceção de negócio customizada (ex: `CanalVendaEmUsoException`) deve ser lançada, informando ao usuário que a exclusão não pode ser realizada. Isso garante a integridade referencial dos dados.
+- **Referência no Código:** Procure pelo comentário `TODO` no método `CanalVendaServiceImpl.deleteById`.
+
+---
+
 ## ApiRoot: mover paginação para `/produtos`
 
 - **Proposta:** Remover o link templated de paginação (`{?page,size,sort}`) do `ApiRoot` e expor apenas um link simples (ou nenhum) para navegação da navbar; adicionar/assinalar o link templated no próprio endpoint `/api/v1/produtos` (por exemplo via rel `produtos-paged` ou através de links paginados na resposta de `GET /produtos`).

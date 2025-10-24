@@ -39,4 +39,10 @@ public interface CanalVendaService {
      * @return Lista de DTOs de resposta
      */
     List<CanalVendaResponseDTO> findAll();
+
+    /**
+     * Exclui um canal de venda pelo ID.
+     * @param id O ID do canal de venda a ser excluído.
+     */
+    void deleteById(Long id);
 }
