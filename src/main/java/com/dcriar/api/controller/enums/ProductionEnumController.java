@@ -1,7 +1,7 @@
 package com.dcriar.api.controller.enums;
 
-import com.dcriar.api.hateous.enums.assembler.ModoCalculoModelAssembler;
-import com.dcriar.api.hateous.enums.model.ModoCalculoModel;
+import com.dcriar.api.hateoas.enums.assembler.ModoCalculoModelAssembler;
+import com.dcriar.api.hateoas.enums.model.ModoCalculoModel;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -21,7 +21,7 @@ import java.util.Arrays;
  * de compilação com os assemblers, que precisam da referência da classe do controller.
  */
 @RestController
-@RequestMapping("/v1/enums/production")
+@RequestMapping("/api/v1/enums/production")
 @Tag(name = "Enums - Produção", description = "Endpoints para consulta de enums relacionados à produção")
 public class ProductionEnumController {
 

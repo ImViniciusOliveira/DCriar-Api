@@ -3,7 +3,7 @@ package com.dcriar.api.mapper.production;
 import com.dcriar.api.dto.request.production.MargensRequestDTO;
 import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
-import com.dcriar.api.hateous.production.model.OrdemDeProducaoModel;
+import com.dcriar.api.hateoas.production.model.OrdemDeProducaoModel;
 import com.dcriar.domain.production.entity.CorteRealizado;
 import com.dcriar.domain.production.entity.Margens;
 import com.dcriar.domain.production.entity.OrdemDeProducao;

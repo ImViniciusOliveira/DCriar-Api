@@ -2,8 +2,8 @@ package com.dcriar.api.controller.stock;
 
 import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
-import com.dcriar.api.hateous.stock.assembler.TipoMateriaPrimaModelAssembler;
-import com.dcriar.api.hateous.stock.model.TipoMateriaPrimaModel;
+import com.dcriar.api.hateoas.stock.assembler.TipoMateriaPrimaModelAssembler;
+import com.dcriar.api.hateoas.stock.model.TipoMateriaPrimaModel;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.service.TipoMateriaPrimaService;
 import io.swagger.v3.oas.annotations.Operation;

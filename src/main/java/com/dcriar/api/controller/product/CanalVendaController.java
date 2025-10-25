@@ -3,7 +3,7 @@ package com.dcriar.api.controller.product;
 import com.dcriar.api.dto.request.product.CanalVendaRequestDTO;
 import com.dcriar.api.dto.response.product.CanalVendaResponseDTO;
 import com.dcriar.api.hateoas.product.assembler.CanalVendaModelAssembler;
-import com.dcriar.api.hateoas.product.model.CanalVendaModel;
+import com.dcriar.api.hateoas.enums.model.CanalVendaModel;
 import com.dcriar.domain.product.service.CanalVendaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

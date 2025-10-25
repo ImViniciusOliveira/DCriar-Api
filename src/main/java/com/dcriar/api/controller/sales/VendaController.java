@@ -2,8 +2,8 @@ package com.dcriar.api.controller.sales;
 
 import com.dcriar.api.dto.request.sales.VendaRequestDTO;
 import com.dcriar.api.dto.response.sales.VendaResponseDTO;
-import com.dcriar.api.hateous.sales.assembler.VendaModelAssembler;
-import com.dcriar.api.hateous.sales.model.VendaModel;
+import com.dcriar.api.hateoas.sales.assembler.VendaModelAssembler;
+import com.dcriar.api.hateoas.sales.model.VendaModel;
 import com.dcriar.domain.sales.service.VendaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;

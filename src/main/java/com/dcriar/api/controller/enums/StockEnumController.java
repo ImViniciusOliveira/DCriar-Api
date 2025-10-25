@@ -1,9 +1,9 @@
 package com.dcriar.api.controller.enums;
 
-import com.dcriar.api.hateous.enums.assembler.TipoMovimentacaoModelAssembler;
-import com.dcriar.api.hateous.enums.assembler.UnidadeDeMedidaModelAssembler;
-import com.dcriar.api.hateous.enums.model.TipoMovimentacaoModel;
-import com.dcriar.api.hateous.enums.model.UnidadeDeMedidaModel;
+import com.dcriar.api.hateoas.enums.assembler.TipoMovimentacaoModelAssembler;
+import com.dcriar.api.hateoas.enums.assembler.UnidadeDeMedidaModelAssembler;
+import com.dcriar.api.hateoas.enums.model.TipoMovimentacaoModel;
+import com.dcriar.api.hateoas.enums.model.UnidadeDeMedidaModel;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,7 +24,7 @@ import java.util.Arrays;
  * de compilação com os assemblers, que precisam da referência da classe do controller.
  */
 @RestController
-@RequestMapping("/v1/enums/stock")
+@RequestMapping("/api/v1/enums/stock")
 @Tag(name = "Enums - Estoque", description = "Endpoints para consulta de enums relacionados ao estoque")
 public class StockEnumController {
 

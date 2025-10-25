@@ -2,7 +2,7 @@ package com.dcriar.api.hateoas.product.assembler;
 
 import com.dcriar.api.controller.product.CanalVendaController;
 import com.dcriar.api.dto.response.product.CanalVendaResponseDTO;
-import com.dcriar.api.hateoas.product.model.CanalVendaModel;
+import com.dcriar.api.hateoas.enums.model.CanalVendaModel;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
